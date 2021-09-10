@@ -70,6 +70,8 @@ cat <<EOF >$HOME/.docker/config.json
         }
 }
 EOF
+
+  cat $HOME/.docker/config.json
 }
 
 build_image() {
