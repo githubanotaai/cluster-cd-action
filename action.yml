@@ -1,50 +1,45 @@
-name: 'ArgoCD Continuous Deployment'
+name: 'Continuous Deployment'
 description: ''
 branding:
   icon: anchor
   color: orange
 inputs:
-  application:
-    description: Application name on ArgoCD catalog
+  app_name:
+    description: test
     required: true
-  image:
-    description: 'Image name (repo/name)'
-    required: true
-  image_tag:
-    description: 'Image tag'
-    required: true
-    default: latest
   deployment_repo:
-    description: 'Deployment repository'
+    description: test
     required: true
   deployment_repo_token:
-    description: 'Deployment repository token'
+    description: test
     required: true
-  registry_user:
-    description: 'Deployment repository'
+  deployment_repo_yaml_paths:
+    description: test
     required: true
-  registry_password:
-    description: 'Deployment repository'
+  deployment_repo_yaml_imgtag_key:
+    description: test
     required: true
-  environment:
-    description: 'Deployment environment'
+  image_owner:
+    description: test
     required: true
-  values_yaml_image_tag_key:
-    description: 'Image tag key in values.yaml'
+  image_repo:
+    description: test
     required: true
-    default: 'image.tag'
-  context_path:
-    description: 'Context Path'
+  image_tag:
+    description: test
     required: true
-    default: '.'
-  dockerfile:
-    description: 'Dockerfile name'
+  docker_build_registry_password:
+    description: test
     required: true
-    default: 'Dockerfile'
-# outputs:
-#   random-number:
-#     description: "Random number"
-#     value: ${{ steps.random-number-generator.outputs.random-id }}
+  docker_build_registry_username:
+    description: test
+    required: true
+  docker_build_dockerfile_path:
+    description: test
+    required: true
+  docker_build_context_path:
+    description: test
+    required: true
 runs:
   using: "docker"
   image: "Dockerfile"
