@@ -84,12 +84,12 @@ build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="--file ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
   export DESTINATION="--tag $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-  export ARGS="--push $DESTINATION $DOCKERFILE $CONTEXT"
+  export ARGS="--driver-opt image=moby/buildkit:master --push $DESTINATION $DOCKERFILE $CONTEXT"
 
   echo "Building image"
   echo "args: $ARGS"
 
-  buildx build $ARGS || exit 1
+  buildx create $ARGS || exit 1
 }
 
 set_tag_on_yamls() {
