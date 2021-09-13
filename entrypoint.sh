@@ -89,7 +89,7 @@ build_image() {
   echo "Building image"
   echo "args: $ARGS"
 
-  buildx create $ARGS || exit 1
+  buildx build $ARGS || exit 1
 }
 
 set_tag_on_yamls() {
