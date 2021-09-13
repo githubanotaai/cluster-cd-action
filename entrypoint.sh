@@ -45,7 +45,13 @@ setup_git() {
 clone_deployment_repo() {
   export DEPLOYMENT_REPO="${INPUT_DEPLOYMENT_REPO}"
   export DEPLOYMENT_REPO_TOKEN="${INPUT_DEPLOYMENT_REPO_TOKEN}"
-  export DEPLOYMENT_REPO_PATH="$PWD/deployment-repo"
+
+  if [[ "$GITHUB_ACTIONS" == "true" ]]; then
+    export DEPLOYMENT_REPO_PATH="/deployment-repo"
+  else
+    export DEPLOYMENT_REPO_PATH="$PWD/deployment-repo"
+  fi
+
   export DEPLOYMENT_REPO_CLONE_URL="https://$DEPLOYMENT_REPO_TOKEN@github.com/$DEPLOYMENT_REPO"
 
   echo "Cloning deployment repo."
