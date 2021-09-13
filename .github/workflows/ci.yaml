@@ -1,20 +1,30 @@
 name: CI
-on: push
+
+on:
+  push:
+    branches: [master]
 
 jobs:
-  docker:
+  build-and-deploy:
     runs-on: self-hosted
-    name: Build docker image
+    name: Deploy to Cluster
     steps:
       - uses: actions/checkout@master
-      - name: Test
-        uses: githubanotaai/kaniko-argocd-gitops-action@master
+      - name: CD
+        uses: githubanotaai/simple-cd-action@master
         with:
-          image: igrowdigital/test
-          registry_user: ${{ secrets.DOCKERHUB_USERNAME }}
-          deployment_repo: ${{ secrets.DEPLOYMENT_REPO }}
+          app_name: testapp
+
+          deployment_repo: githubanotaai/applications
           deployment_repo_token: ${{ secrets.DEPLOYMENT_REPO_TOKEN }}
-          registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
-          environment: production
-          values_yaml_image_tag_key: image.tag
-          context_path: test
+          deployment_repo_yaml_paths: applications/testapp/ENV/values.yaml
+          deployment_repo_yaml_imgtag_key: image.tag
+
+          image_owner: igrowdigital
+          image_repo: testapp
+          image_tag: ${{ github.sha }}
+
+          docker_build_registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          docker_build_registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_build_dockerfile_path: Dockerfile
+          docker_build_context_path: .
