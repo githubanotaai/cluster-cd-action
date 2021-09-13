@@ -57,23 +57,8 @@ clone_deployment_repo() {
 setup_docker_credentials() {
   export DOCKER_BUILD_REGISTRY_USER=${INPUT_DOCKER_BUILD_REGISTRY_USER}
   export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
-  export DOCKERHUB_AUTH="$(echo -n $DOCKER_BUILD_REGISTRY_USER:$DOCKER_BUILD_REGISTRY_PASSWORD | base64)"
 
   docker login -u "$DOCKER_BUILD_REGISTRY_USER" -p "$DOCKER_BUILD_REGISTRY_PASSWORD"
-
-#   mkdir -p $HOME/.docker/
-
-# cat <<EOF >$HOME/.docker/config.json
-# {
-#         "auths": {
-#                 "https://index.docker.io/v1/": {
-#                         "auth": "${DOCKERHUB_AUTH}"
-#                 }
-#         }
-# }
-# EOF
-
-  # cat $HOME/.docker/config.json
 }
 
 build_image() {
