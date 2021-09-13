@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: self-hosted
+    container: ubuntu:latest
     name: Deploy to Cluster
     steps:
       - uses: actions/checkout@master
