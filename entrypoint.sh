@@ -59,25 +59,27 @@ setup_docker_credentials() {
   export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
   export DOCKERHUB_AUTH="$(echo -n $DOCKER_BUILD_REGISTRY_USER:$DOCKER_BUILD_REGISTRY_PASSWORD | base64)"
 
-  mkdir -p $HOME/.docker/
+  docker login -u "$DOCKER_BUILD_REGISTRY_USER" -p "$DOCKER_BUILD_REGISTRY_PASSWORD"
 
-cat <<EOF >$HOME/.docker/config.json
-{
-        "auths": {
-                "https://index.docker.io/v1/": {
-                        "auth": "${DOCKERHUB_AUTH}"
-                }
-        }
-}
-EOF
+#   mkdir -p $HOME/.docker/
 
-  cat $HOME/.docker/config.json
+# cat <<EOF >$HOME/.docker/config.json
+# {
+#         "auths": {
+#                 "https://index.docker.io/v1/": {
+#                         "auth": "${DOCKERHUB_AUTH}"
+#                 }
+#         }
+# }
+# EOF
+
+  # cat $HOME/.docker/config.json
 }
 
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  export IMAGE_TAG="${INPUT_IMAGE_TAG}"
+  export IMAGE_TAG="$(echo $INPUT_IMAGE_TAG | cut -c1-8)"
 
   echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
