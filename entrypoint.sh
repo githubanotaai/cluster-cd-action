@@ -30,10 +30,6 @@ resolve_environment() {
     export ENVIRONMENT="production"
   fi
 
-  if [[ "${ENVIRONMENT}" == "develop" ]]; then
-    export ENVIRONMENT="staging"
-  fi
-
   echo "Environment: $ENVIRONMENT"
 }
 
@@ -105,13 +101,13 @@ push() {
   git push
 }
 
-setup_docker_credentials
-setup_git
+# setup_docker_credentials
+# setup_git
 
 resolve_app_name
 resolve_environment
 
-build_image
-clone_deployment_repo
-set_tag_on_yamls
-push
+# build_image
+# clone_deployment_repo
+# set_tag_on_yamls
+# push
