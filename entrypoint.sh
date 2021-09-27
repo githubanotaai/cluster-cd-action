@@ -90,7 +90,7 @@ build_image() {
 
 set_tag_on_yamls() {
   export IMGTAG_KEY="${INPUT_DEPLOYMENT_REPO_YAML_IMGTAG_KEY:-"image.tag"}"
-  IFS='\n' read -r -a DEPLOYMENT_REPO_YAML_PATHS <<< "$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
+  IFS=$'\n' read -r -a DEPLOYMENT_REPO_YAML_PATHS <<< "$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
 
   echo "input: $INPUT_DEPLOYMENT_REPO_YAML_PATHS"
   echo "arr: ${DEPLOYMENT_REPO_YAML_PATHS[@]}"
