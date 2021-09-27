@@ -17,7 +17,10 @@ jobs:
 
           deployment_repo: githubanotaai/applications
           deployment_repo_token: ${{ secrets.DEPLOYMENT_REPO_TOKEN }}
-          deployment_repo_yaml_paths: applications/testapp/ENV/values.yaml
+          deployment_repo_yaml_paths: |
+            applications/testapp/ENV/values.yaml
+            applications/testapp123/ENV/values.yaml
+            applications/testapp1234/ENV/values.yaml
           deployment_repo_yaml_imgtag_key: image.tag
 
           image_owner: igrowdigital

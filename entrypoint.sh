@@ -16,6 +16,10 @@
 #   docker_build_dockerfile_path: packages/app/Dockerfile
 #   docker_build_context_path: .
 
+if [[ -f .env ]]; then
+  echo ".env exists, entering debug mode."
+  source .env
+fi
 
 resolve_app_name() {
   export APP_NAME="${INPUT_APP_NAME:-"$(echo $GITHUB_REPOSITORY | cut -d/ -f2)"}"
@@ -71,27 +75,30 @@ build_image() {
   echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
-  export DOCKERFILE="--file ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="--tag $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-  export ARGS="--push $DESTINATION $DOCKERFILE $CONTEXT"
+  export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
+  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  # export ARGS="$DESTINATION $DOCKERFILE $CONTEXT"
+  export ARGS="$DOCKERFILE $CONTEXT -t $DESTINATION"
 
   echo "Building image"
-  echo "args: $ARGS"
+  echo "docker build args: $ARGS"
 
-  buildx build $ARGS || exit 1
+  docker build $ARGS || exit 1
+
+  docker push "$DESTINATION"
 }
 
 set_tag_on_yamls() {
   export IMGTAG_KEY="${INPUT_DEPLOYMENT_REPO_YAML_IMGTAG_KEY:-"image.tag"}"
-  IFS=';' read -r -a DEPLOYMENT_REPO_YAML_PATHS <<< "$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
+  IFS=' ' read -r -a DEPLOYMENT_REPO_YAML_PATHS <<< "$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
 
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
     YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' )"
     echo "Editing YAML: $YAML_PATH"
-    yq w -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
-    cd "$DEPLOYMENT_REPO_PATH"
-    git add "$YAML_PATH"
-    cd "$OLDPWD"
+    # yq w -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
+    # cd "$DEPLOYMENT_REPO_PATH"
+    # git add "$YAML_PATH"
+    # cd "$OLDPWD"
   done
 }
 
@@ -101,13 +108,13 @@ push() {
   git push
 }
 
-# setup_docker_credentials
-# setup_git
+setup_docker_credentials
+setup_git
 
 resolve_app_name
 resolve_environment
 
 # build_image
-# clone_deployment_repo
-# set_tag_on_yamls
+clone_deployment_repo
+set_tag_on_yamls
 # push
