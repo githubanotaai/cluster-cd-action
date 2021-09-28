@@ -90,6 +90,7 @@ build_image() {
 set_tag_on_yamls() {
   export IMGTAG_KEY="${INPUT_DEPLOYMENT_REPO_YAML_IMGTAG_KEY:-"image.tag"}"
   readarray -t DEPLOYMENT_REPO_YAML_PATHS <<<"$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
+  unset DEPLOYMENT_REPO_YAML_PATHS[-1]
 
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
     YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' )"
