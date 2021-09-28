@@ -38,8 +38,8 @@ resolve_environment() {
 }
 
 setup_git() {
-  git config --local user.email "actions@github.com"
-  git config --local user.name "GitHub Actions"
+  git config --global user.email "actions@github.com"
+  git config --global user.name "GitHub Actions"
 }
 
 clone_deployment_repo() {
