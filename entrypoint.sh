@@ -42,8 +42,8 @@ resolve_environment() {
 }
 
 setup_git() {
-  git config --global user.email "actions@github.com"
-  git config --global user.name "GitHub Actions"
+  git config --global user.email "actions@github.com" || exit 1
+  git config --global user.name "GitHub Actions" || exit 1
 }
 
 clone_deployment_repo() {
@@ -61,14 +61,14 @@ clone_deployment_repo() {
   echo "Cloning deployment repo."
   echo "URL: $DEPLOYMENT_REPO_CLONE_URL"
 
-  git clone "$DEPLOYMENT_REPO_CLONE_URL" "$DEPLOYMENT_REPO_PATH" 
+  git clone "$DEPLOYMENT_REPO_CLONE_URL" "$DEPLOYMENT_REPO_PATH" || exit 1
 }
 
 setup_docker_credentials() {
   export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
   export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
-  docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD"
+  docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
 }
 
 build_image() {
@@ -88,7 +88,7 @@ build_image() {
 
   docker build $ARGS || exit 1
 
-  docker push "$DESTINATION"
+  docker push "$DESTINATION" || exit 1
 }
 
 set_tag_on_yamls() {
@@ -97,19 +97,19 @@ set_tag_on_yamls() {
   unset DEPLOYMENT_REPO_YAML_PATHS[-1]
 
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
-    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' )"
+    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
     echo "Editing YAML: $YAML_PATH"
-    yq w -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG}
+    yq w -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
     cd "$DEPLOYMENT_REPO_PATH"
-    git add "$YAML_PATH"
+    git add "$YAML_PATH" || exit 1
     cd "$OLDPWD"
   done
 }
 
 push() {
   cd "$DEPLOYMENT_REPO_PATH"
-  git commit -m "chore(${APP_NAME}): bumping ${ENVIRONMENT} image tag"
-  git push
+  git commit -m "chore(${APP_NAME}): bumping ${ENVIRONMENT} image tag" || exit 1
+  git push || exit 1
 }
 
 setup_docker_credentials
