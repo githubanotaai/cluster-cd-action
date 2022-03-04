@@ -99,7 +99,7 @@ set_tag_on_yamls() {
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
     YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
     echo "Editing YAML: $YAML_PATH"
-    yq w -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
+    yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
     cd "$DEPLOYMENT_REPO_PATH"
     git add "$YAML_PATH" || exit 1
     cd "$OLDPWD"
