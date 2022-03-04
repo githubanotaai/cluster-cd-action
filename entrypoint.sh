@@ -74,7 +74,7 @@ setup_docker_credentials() {
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  export IMAGE_TAG="$(echo $INPUT_IMAGE_TAG | cut -c1-16)"
+  export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-8)"
 
   echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
