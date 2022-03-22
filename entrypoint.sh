@@ -31,7 +31,7 @@ resolve_environment() {
   export ENVIRONMENT="$(echo $GITHUB_REF | cut -d/ -f3)"
 
   if [[ "${ENVIRONMENT}" == "master" ]] || [[ "${ENVIRONMENT}" == "main" ]]; then
-    export ENVIRONMENT="production"
+    export ENVIRONMENT="prod"
   fi
   
   if [[ "${ENVIRONMENT}" == "develop" ]]; then
