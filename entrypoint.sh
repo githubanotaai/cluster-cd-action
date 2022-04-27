@@ -16,6 +16,9 @@
 #   docker_build_dockerfile_path: packages/app/Dockerfile
 #   docker_build_context_path: .
 
+GREEN='\033[0;32m'
+NC='\033[0m'
+
 if [[ -f .env ]]; then
   echo ".env exists, entering debug mode."
   source .env
@@ -99,10 +102,14 @@ set_tag_on_yamls() {
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
     YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
     echo "Editing YAML: $YAML_PATH"
-    yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
-    cd "$DEPLOYMENT_REPO_PATH"
-    git add "$YAML_PATH" || exit 1
-    cd "$OLDPWD"
+    if [[ ! -f "$YAML_PATH" ]]; then
+      echo "::error ::Could not find one of the application deployment files (is it deployed on the cluster?): $YAML_PATH"
+    else
+      yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
+      cd "$DEPLOYMENT_REPO_PATH"
+      git add "$YAML_PATH" || exit 1
+      cd "$OLDPWD"
+    fi
   done
 }
 
@@ -112,13 +119,33 @@ push() {
   git push || exit 1
 }
 
-setup_docker_credentials
-setup_git
+echo -e "${GREEN}+----------------------------------------+"
+echo "|      Starting to Deploy to Cluster     |"
+echo -e "+----------------------------------------+${NC}"
 
+echo "::group::Resolving variables"
 resolve_app_name
 resolve_environment
+echo "::endgroup::"
 
+echo "::group::Setting up docker credentials"
+setup_docker_credentials
+echo "::endgroup::"
+
+echo "::group::Setting up Git Credentials"
+setup_git
+echo "::endgroup"
+
+echo "::group::Building Docker Image"
 build_image
+echo "::endgroup::"
+
+echo "::group::Update image tag on Deployment Repository"
 clone_deployment_repo
 set_tag_on_yamls
 push
+echo "::endgroup::"
+
+echo -e "${GREEN}+----------------------------------------+"
+echo "|                  DONE!                |"
+echo -e "+----------------------------------------+${NC}"
