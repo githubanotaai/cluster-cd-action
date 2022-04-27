@@ -120,8 +120,8 @@ push() {
 }
 
 echo -e "${GREEN}+----------------------------------------+"
-echo "|      Starting to Deploy to Cluster     |"
-echo -e "+----------------------------------------+${NC}"
+echo -e "${GREEN}|      Starting to Deploy to Cluster     |"
+echo -e "${GREEN}+----------------------------------------+"
 
 echo "::group::Resolving variables"
 resolve_app_name
@@ -147,5 +147,5 @@ push
 echo "::endgroup::"
 
 echo -e "${GREEN}+----------------------------------------+"
-echo "|                  DONE!                |"
-echo -e "+----------------------------------------+${NC}"
+echo -e "${GREEN}|                  DONE!                 |"
+echo -e "${GREEN}+----------------------------------------+"
