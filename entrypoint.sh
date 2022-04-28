@@ -35,11 +35,9 @@ resolve_environment() {
 
   if [[ "${ENVIRONMENT}" == "master" ]] || [[ "${ENVIRONMENT}" == "main" ]]; then
     export ENVIRONMENT="prod"
-  fi
-  
-  if [[ "${ENVIRONMENT}" == "develop" ]]; then
+  else
     export ENVIRONMENT="staging"
-  fi 
+  fi
 
   echo "Environment: $ENVIRONMENT"
 }
