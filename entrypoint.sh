@@ -121,6 +121,8 @@ echo -e "${GREEN}+----------------------------------------+"
 echo -e "${GREEN}|      Starting to Deploy to Cluster     |"
 echo -e "${GREEN}+----------------------------------------+"
 
+echo "If you have any issue, please contact rsouza@anota.ai"
+
 echo "::group::Resolving variables"
 resolve_app_name
 resolve_environment
