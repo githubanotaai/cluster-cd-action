@@ -111,6 +111,15 @@ set_tag_on_yamls() {
   done
 }
 
+check_if_is_already_updated() {
+  if [[ `git status --porcelain --untracked-files=no` ]]; then
+    echo "Detected changes, pushing...."
+  else
+    echo -e "${GREEN}Already updated, exiting."
+    exit 0
+  fi
+}
+
 push() {
   cd "$DEPLOYMENT_REPO_PATH"
   git commit -m "chore(${APP_NAME}): bumping ${ENVIRONMENT} image tag" || exit 1
@@ -143,6 +152,7 @@ echo "::endgroup::"
 echo "::group::Update image tag on Deployment Repository"
 clone_deployment_repo
 set_tag_on_yamls
+check_if_is_already_updated
 push
 echo "::endgroup::"
 
