@@ -154,7 +154,7 @@ echo "::endgroup::"
 echo "::group::Update image tag on Deployment Repository"
 clone_deployment_repo
 set_tag_on_yamls
-check_if_is_already_updated
+# check_if_is_already_updated
 push
 echo "::endgroup::"
 
