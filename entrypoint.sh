@@ -45,6 +45,7 @@ resolve_environment() {
 setup_git() {
   git config --global user.email "actions@github.com" || exit 1
   git config --global user.name "GitHub Actions" || exit 1
+  git config --global --add safe.directory /github/workspace || exit 1
 }
 
 clone_deployment_repo() {
