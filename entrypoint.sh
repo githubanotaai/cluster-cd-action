@@ -113,6 +113,7 @@ set_tag_on_yamls() {
 }
 
 check_if_is_already_updated() {
+  git status --porcelain --untracked-files=no
   if [[ `git status --porcelain --untracked-files=no` ]]; then
     echo "Detected changes, pushing...."
   else
