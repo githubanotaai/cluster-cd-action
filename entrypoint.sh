@@ -83,7 +83,7 @@ build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
   export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-  export ARGS="--no-cache $DOCKERFILE $CONTEXT -t $DESTINATION"
+  export ARGS="$DOCKERFILE $CONTEXT -t $DESTINATION"
 
   echo "Building image"
   echo "docker build args: $ARGS"
