@@ -1,0 +1,2 @@
+https://github.com/mikefarah/yq/releases/download/3.3.2/yq_linux_amd64
+https://download.docker.com/linux/static/stable/x86_64/docker-20.10.8.tgz
