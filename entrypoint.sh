@@ -19,10 +19,10 @@
 GREEN='\033[0;32m'
 NC='\033[0m'
 
-if [[ -f .env ]]; then
-  echo ".env exists, entering debug mode."
-  source .env
-fi
+# if [[ -f .env ]]; then
+#   echo ".env exists, entering debug mode."
+#   source .env
+# fi
 
 resolve_app_name() {
   export APP_NAME="${INPUT_APP_NAME:-"$(echo $GITHUB_REPOSITORY | cut -d/ -f2)"}"
