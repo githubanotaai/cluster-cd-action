@@ -40,6 +40,9 @@ inputs:
   docker_build_context_path:
     description: test
     required: true
+  environment:
+    description: test
+    required: true
 runs:
   using: "docker"
   image: "Dockerfile"
