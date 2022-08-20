@@ -31,20 +31,19 @@ resolve_app_name() {
 }
 
 resolve_environment() {
-  export ENVIRONMENT="$(echo $GITHUB_REF | cut -d/ -f3)"
+  export ENVIRONMENT="${INPUT_ENVIRONMENT}"
 
-  if [[ "${ENVIRONMENT}" == "master" ]] || [[ "${ENVIRONMENT}" == "main" ]]; then
-    export ENVIRONMENT="prod"
-  else
-    export ENVIRONMENT="staging"
+  if [[ "${ENVIRONMENT}" == "production" ]]; then
+    echo "::error :This action is disabled for production deployments."
+    exit 1
   fi
 
-  echo "Environment: $ENVIRONMENT"
+  echo "Environment: $INPUT_ENVIRONMENT"
 }
 
 setup_git() {
-  git config --global user.email "actions@github.com" || exit 1
-  git config --global user.name "GitHub Actions" || exit 1
+  git config --global user.email "alcantara@anota.ai" || exit 1
+  git config --global user.name "Alcântara Bot" || exit 1
   git config --global --add safe.directory /github/workspace || exit 1
 }
 
@@ -99,10 +98,10 @@ set_tag_on_yamls() {
   unset DEPLOYMENT_REPO_YAML_PATHS[-1]
 
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
-    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
+    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENVIRONMENT/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
     echo "Editing YAML: $YAML_PATH"
     if [[ ! -f "$YAML_PATH" ]]; then
-      echo "::error ::Could not find one of the application deployment files (is it deployed on the cluster?): $YAML_PATH"
+      echo "::warning ::Could not find one of the application deployment files (is it deployed on the cluster?): $YAML_PATH"
     else
       yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
       cd "$DEPLOYMENT_REPO_PATH"
@@ -135,29 +134,29 @@ echo -e "${GREEN}+----------------------------------------+"
 echo "If you have any issue, please contact rsouza@anota.ai"
 
 echo "::group::Resolving variables"
-resolve_app_name
-resolve_environment
+resolve_app_name || exit 1
+resolve_environment || exit 1
 echo "::endgroup::"
 
 echo "::group::Setting up docker credentials"
-setup_docker_credentials
+setup_docker_credentials || exit 1
 echo "::endgroup::"
 
 echo "::group::Setting up Git Credentials"
-setup_git
+setup_git || exit 1
 echo "::endgroup"
 
 echo "::group::Building Docker Image"
-build_image
+build_image || exit 1
 echo "::endgroup::"
 
 echo "::group::Update image tag on Deployment Repository"
-clone_deployment_repo
+clone_deployment_repo || exit 1
 set_tag_on_yamls
 check_if_is_already_updated
-push
+push || exit 1
 echo "::endgroup::"
 
 echo -e "${GREEN}+----------------------------------------+"
-echo -e "${GREEN}|                  DONE!                 |"
+echo -e "${GREEN}|                  DONE!    :D           |"
 echo -e "${GREEN}+----------------------------------------+"
