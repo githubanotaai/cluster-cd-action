@@ -58,7 +58,7 @@ clone_deployment_repo() {
     export DEPLOYMENT_REPO_PATH="$PWD/deployment-repo"
   fi
 
-  export DEPLOYMENT_REPO_CLONE_URL="https://$DEPLOYMENT_REPO_TOKEN@github.com/$DEPLOYMENT_REPO"
+  export DEPLOYMENT_REPO_CLONE_URL="https://oauth2:$DEPLOYMENT_REPO_TOKEN@github.com/$DEPLOYMENT_REPO"
 
   echo "Cloning deployment repo."
   echo "URL: $DEPLOYMENT_REPO_CLONE_URL"
