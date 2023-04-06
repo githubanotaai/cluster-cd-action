@@ -34,6 +34,13 @@ inputs:
   docker_build_registry_username:
     description: test
     required: true
+  skip_docker_build: 
+    description: test
+    required: false
+    default: "false"
+  docker_build_command: 
+    description: test
+    required: false
   docker_build_dockerfile_path:
     description: test
     required: true

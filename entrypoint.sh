@@ -19,6 +19,8 @@
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+export SKIP_DOCKER_BUILD="${INPUT_SET_TAG_ONLY:-"false"}"
+export DOCKER_BUILD_COMMAND="${INPUT_DOCKER_BUILD_COMMAND}"
 # if [[ -f .env ]]; then
 #   echo ".env exists, entering debug mode."
 #   source .env
@@ -72,23 +74,29 @@ setup_docker_credentials() {
   docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
 }
 
-build_image() {
+resolve_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
   export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
-  echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
+  echo "Image: $DESTINATION"
+}
+
+build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
   export ARGS="$DOCKERFILE $CONTEXT -t $DESTINATION"
 
   echo "Building image"
   echo "docker build args: $ARGS"
 
   docker build $ARGS || exit 1
+}
 
+push_image() {
+  echo "Pushing image to registry"
   docker push "$DESTINATION" || exit 1
 }
 
@@ -138,17 +146,29 @@ resolve_app_name || exit 1
 resolve_environment || exit 1
 echo "::endgroup::"
 
-echo "::group::Setting up docker credentials"
-setup_docker_credentials || exit 1
-echo "::endgroup::"
-
 echo "::group::Setting up Git Credentials"
 setup_git || exit 1
 echo "::endgroup"
 
-echo "::group::Building Docker Image"
-build_image || exit 1
-echo "::endgroup::"
+if ! [[ "$SKIP_DOCKER_BUILD" == "true" ]]; then
+  echo "::group::Setting up docker credentials"
+  setup_docker_credentials || exit 1
+  echo "::endgroup::"
+
+  echo "::group::Building Docker Image"
+  # If the $DOCKER_BUILD_COMMAND is set, use it to build the image
+  if [[ -n "$DOCKER_BUILD_COMMAND" ]]; then
+    echo "Using custom build command: $DOCKER_BUILD_COMMAND"
+    eval "$DOCKER_BUILD_COMMAND" || exit 1
+  else
+    resolve_image
+    build_image || exit 1
+    push_image || exit 1
+  fi
+  echo "::endgroup::"
+else 
+  echo "Skipping docker setup and image build, because SET_TAG_ONLY is set to true."
+fi
 
 echo "::group::Update image tag on Deployment Repository"
 clone_deployment_repo || exit 1
@@ -157,6 +177,12 @@ check_if_is_already_updated
 push || exit 1
 echo "::endgroup::"
 
-echo -e "${GREEN}+----------------------------------------+"
-echo -e "${GREEN}|                  DONE!    :D           |"
-echo -e "${GREEN}+----------------------------------------+"
+echo -e "+--------------------------------------+"
+echo -e "|   _____                              |"
+echo -e "|  / ____|                             |"
+echo -e "| | (___  _   _  ___ ___ ___  ___ ___  |"
+echo -e "|  \___ \| | | |/ __/ __/ _ \/ __/ __| |"
+echo -e "|  ____) | |_| | (_| (_|  __/\__ \__ \ |"
+echo -e "| |_____/ \__,_|\___\___\___||___/___/ |"
+echo -e "|                                      |"
+echo -e "+--------------------------------------+"
