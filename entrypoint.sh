@@ -31,20 +31,27 @@ resolve_app_name() {
 }
 
 resolve_environment() {
-  export ENVIRONMENT="$(echo $GITHUB_REF | cut -d/ -f3)"
+  if [[ -z "$INPUT_ENVIRONMENT" ]]; then
+    echo "Environment not set, using branch name."
+    export BRANCH_NAME="$(echo $GITHUB_REF | cut -d/ -f3)"
 
-  if [[ "${ENVIRONMENT}" == "master" ]] || [[ "${ENVIRONMENT}" == "main" ]]; then
-    export ENVIRONMENT="prod"
+    if [[ "$BRANCH_NAME" == "master" ]] || [[ "$BRANCH_NAME" == "main" ]]; then
+      export ENVIRONMENT="production"
+    else
+      echo "Not in master or main, using staging as default."
+      export ENVIRONMENT="staging"
+    fi
   else
-    export ENVIRONMENT="staging"
+    echo "Environment set, using it."
+    export ENVIRONMENT="$INPUT_ENVIRONMENT"
   fi
 
   echo "Environment: $ENVIRONMENT"
 }
 
 setup_git() {
-  git config --global user.email "actions@github.com" || exit 1
-  git config --global user.name "GitHub Actions" || exit 1
+  git config --global user.email "infra@anota.ai" || exit 1
+  git config --global user.name "Infra Team" || exit 1
   git config --global --add safe.directory /github/workspace || exit 1
 }
 
@@ -83,7 +90,8 @@ build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
   export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-  export ARGS="$DOCKERFILE $CONTEXT -t $DESTINATION"
+  export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
+  export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
   echo "Building image"
   echo "docker build args: $ARGS"
