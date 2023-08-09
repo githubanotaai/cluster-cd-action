@@ -107,7 +107,7 @@ set_tag_on_yamls() {
   unset DEPLOYMENT_REPO_YAML_PATHS[-1]
 
   for YAML_PATH in "${DEPLOYMENT_REPO_YAML_PATHS[@]}"; do
-    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENV/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
+    YAML_PATH="$( echo $DEPLOYMENT_REPO_PATH/$YAML_PATH | sed 's/ENVIRONMENT/'$ENVIRONMENT'/g' | sed 's/APP_NAME/'$APP_NAME'/g' )"
     echo "Editing YAML: $YAML_PATH"
     if [[ ! -f "$YAML_PATH" ]]; then
       echo "::error ::Could not find one of the application deployment files (is it deployed on the cluster?): $YAML_PATH"
