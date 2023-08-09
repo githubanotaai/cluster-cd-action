@@ -107,7 +107,7 @@ set_tag_on_yamls() {
     else
       yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
       cd "$DEPLOYMENT_REPO_PATH"
-      git add "$YAML_PATH" || exit 1
+      git add . || exit 1
       cd "$OLDPWD"
     fi
   done
