@@ -17,6 +17,8 @@
 #   docker_build_context_path: .
 
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 # if [[ -f .env ]]; then
@@ -132,15 +134,22 @@ check_if_is_already_updated() {
 
 push() {
   cd "$DEPLOYMENT_REPO_PATH"
+  git fetch || exit 1
+  if [[ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]]; then
+    echo "Remote has changes, pulling them."
+    git pull || exit 1
+  else 
+    echo "Remote is up to date."
+  fi
   git commit -m "chore(${APP_NAME}): bumping ${ENVIRONMENT} image tag" || exit 1
   git push || exit 1
 }
 
 echo -e "${GREEN}+----------------------------------------+"
-echo -e "${GREEN}|      Starting to Deploy to Cluster     |"
+echo -e "${GREEN}|      Running Deploy                    |"
 echo -e "${GREEN}+----------------------------------------+"
 
-echo "If you have any issue, please contact rsouza@anota.ai"
+echo "If you have any issues, please contact infra@anota.ai"
 
 echo "::group::Resolving variables"
 resolve_app_name
