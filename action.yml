@@ -43,7 +43,6 @@ inputs:
   environment:
     description: test
     required: false
-    default: 'staging'
 runs:
   using: "docker"
   image: "Dockerfile"
