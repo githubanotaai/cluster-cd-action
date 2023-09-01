@@ -104,6 +104,7 @@ build_image() {
 }
 
 set_tag_on_yamls() {
+  export ALL_YAMLS_FOUND="true"
   export IMGTAG_KEY="${INPUT_DEPLOYMENT_REPO_YAML_IMGTAG_KEY:-"image.tag"}"
   readarray -t DEPLOYMENT_REPO_YAML_PATHS <<<"$INPUT_DEPLOYMENT_REPO_YAML_PATHS"
   unset DEPLOYMENT_REPO_YAML_PATHS[-1]
@@ -113,6 +114,7 @@ set_tag_on_yamls() {
     echo "Editing YAML: $YAML_PATH"
     if [[ ! -f "$YAML_PATH" ]]; then
       echo "::error ::Could not find one of the application deployment files (is it deployed on the cluster?): $YAML_PATH"
+      ALL_YAMLS_FOUND="false"
     else
       yq w --style double -i ${YAML_PATH} ${IMGTAG_KEY} ${IMAGE_TAG} || exit 1
       cd "$DEPLOYMENT_REPO_PATH"
@@ -173,6 +175,10 @@ clone_deployment_repo
 set_tag_on_yamls
 check_if_is_already_updated
 push
+if [[ "$ALL_YAMLS_FOUND" == "false" ]]; then
+  echo "::error ::Failing because one of the application deployment files was not found. Please check the logs."
+  exit 1
+fi
 echo "::endgroup::"
 
 echo -e "${GREEN}+----------------------------------------+"
