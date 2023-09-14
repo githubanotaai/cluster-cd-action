@@ -5,43 +5,48 @@ branding:
   color: orange
 inputs:
   app_name:
-    description: test
-    required: true
+    description: "app's name (auto resolves)"
+    required: false
   deployment_repo:
-    description: test
-    required: true
+    description: "deployment_repo slug"
+    required: false
+    default: githubanotaai/deployment-catalog
   deployment_repo_token:
-    description: test
+    description: "Github PAT with r/w access to the deployment_repo"
     required: true
   deployment_repo_yaml_paths:
-    description: test
+    description: "array containing the paths to the application's values.yaml files"
     required: true
   deployment_repo_yaml_imgtag_key:
-    description: test
-    required: true
+    description: "string containing the key to the image tag in the values.yaml files (ex. image.tag)"
+    required: false
+    default: "image.tag"
   image_owner:
-    description: test
-    required: true
+    description: "docker hub user"
+    required: false
+    default: "igrowdigital"
   image_repo:
-    description: test
-    required: true
+    description: "should be the same as app_name"
+    required: false
   image_tag:
-    description: test
+    description: "should be the commit's sha hash"
     required: true
   docker_build_registry_password:
-    description: test
+    description: "docker hub user"
     required: true
   docker_build_registry_username:
-    description: test
+    description: "docker hub password"
     required: true
   docker_build_dockerfile_path:
-    description: test
-    required: true
+    description: "path to the dockerfile"
+    required: false
+    default: "Dockerfile"
   docker_build_context_path:
-    description: test
-    required: true
+    description: "docker build context path"
+    required: false
+    default: "."
   environment:
-    description: test
+    description: "environment to deploy to (auto resolves)"
     required: false
 runs:
   using: "docker"
