@@ -1,7 +1,5 @@
-# gitops-argocd-action
+# cluster-cd-action
 
-## Como testar
+Essa custom action é responsável pelo build e publicação das imagens Docker e atualização da nova tag no catálogo de implantações.
 
-Para testar, crie um arquivo `.env` e preencha-o com os valores do arquivo `.env.sample`, modificando as variáveis desejadas.
-
-Em seguida, rode o script `test.sh`.
+Mais informações podem ser encontradas no [guia de infra](https://infra-guide.anota.ai).
