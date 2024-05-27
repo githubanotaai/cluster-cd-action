@@ -48,6 +48,10 @@ inputs:
   environment:
     description: "environment to deploy to (auto resolves)"
     required: false
+  build_only:
+    description: "if true, only builds and pushes the image"
+    required: false
+    default: false
 runs:
   using: "docker"
   image: "Dockerfile"
