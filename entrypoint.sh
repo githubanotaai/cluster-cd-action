@@ -21,6 +21,8 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+export BUILD_ONLY="${INPUT_BUILD_ONLY:-"false"}"
+
 # if [[ -f .env ]]; then
 #   echo ".env exists, entering debug mode."
 #   source .env
@@ -147,6 +149,12 @@ push() {
   git push || exit 1
 }
 
+done_msg() {
+  echo -e "${GREEN}+----------------------------------------+"
+  echo -e "${GREEN}|                  DONE!                 |"
+  echo -e "${GREEN}+----------------------------------------+"
+}
+
 echo -e "${GREEN}+----------------------------------------+"
 echo -e "${GREEN}|      Running Deploy                    |"
 echo -e "${GREEN}+----------------------------------------+"
@@ -170,17 +178,22 @@ echo "::group::Building Docker Image"
 build_image
 echo "::endgroup::"
 
+if [[ "$BUILD_ONLY" == "true" ]]; then
+  echo "Only building and pushing image, exiting..."
+  done_msg
+  exit 0
+fi
+
 echo "::group::Update image tag on Deployment Repository"
 clone_deployment_repo
 set_tag_on_yamls
 check_if_is_already_updated
 push
+
 if [[ "$ALL_YAMLS_FOUND" == "false" ]]; then
   echo "::error ::Failing because one of the application deployment files was not found. Please check the logs."
   exit 1
 fi
-echo "::endgroup::"
 
-echo -e "${GREEN}+----------------------------------------+"
-echo -e "${GREEN}|                  DONE!                 |"
-echo -e "${GREEN}+----------------------------------------+"
+echo "::endgroup::"
+done_msg

@@ -1,5 +1,5 @@
 name: 'Continuous Deployment'
-description: ''
+description: 'Continuous Deployment to Kubernetes Cluster using Deployment Catalog'
 branding:
   icon: anchor
   color: orange
@@ -13,10 +13,10 @@ inputs:
     default: githubanotaai/deployment-catalog
   deployment_repo_token:
     description: "Github PAT with r/w access to the deployment_repo"
-    required: true
+    required: false
   deployment_repo_yaml_paths:
     description: "array containing the paths to the application's values.yaml files"
-    required: true
+    required: false
   deployment_repo_yaml_imgtag_key:
     description: "string containing the key to the image tag in the values.yaml files (ex. image.tag)"
     required: false
@@ -30,13 +30,13 @@ inputs:
     required: false
   image_tag:
     description: "should be the commit's sha hash"
-    required: true
+    required: false
   docker_build_registry_password:
     description: "docker hub user"
-    required: true
+    required: false
   docker_build_registry_username:
     description: "docker hub password"
-    required: true
+    required: false
   docker_build_dockerfile_path:
     description: "path to the dockerfile"
     required: false
@@ -48,6 +48,10 @@ inputs:
   environment:
     description: "environment to deploy to (auto resolves)"
     required: false
+  build_only:
+    description: "if true, only builds and pushes the image"
+    required: false
+    default: false
 runs:
   using: "docker"
   image: "Dockerfile"
