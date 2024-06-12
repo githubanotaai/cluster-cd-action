@@ -30,7 +30,7 @@ inputs:
     required: false
   image_tag:
     description: "should be the commit's sha hash"
-    required: false
+    required: true
   docker_build_registry_password:
     description: "docker hub user"
     required: false
