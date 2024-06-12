@@ -28,6 +28,8 @@ export BUILD_ONLY="${INPUT_BUILD_ONLY:-"false"}"
 #   source .env
 # fi
 
+env
+
 resolve_app_name() {
   export APP_NAME="${INPUT_APP_NAME:-"$(echo $GITHUB_REPOSITORY | cut -d/ -f2)"}"
 
@@ -51,6 +53,30 @@ resolve_environment() {
   fi
 
   echo "Environment: $ENVIRONMENT"
+}
+
+resolve_image_tag() {
+  ref = $(echo $GITHUB_REF | cut -d/ -f3)
+
+  export IMAGE_TAG="${GITHUB_B} ${INPUT_IMAGE_TAG}"
+  
+
+  if [[ -z "$INPUT_IMAGE_TAG" ]]; then
+    echo "Image tag not set, using commit sha."
+    export IMAGE_TAG="$(echo commit-$GITHUB_SHA | cut -c1-16)"
+  else
+    echo "Image tag set, using it."
+    export IMAGE_TAG="$INPUT_IMAGE_TAG"
+  fi
+  if [[ -z "$INPUT_IMAGE_TAG" ]]; then
+    echo "Image tag not set, using commit sha."
+    export IMAGE_TAG="$(echo commit-$GITHUB_SHA | cut -c1-16)"
+  else
+    echo "Image tag set, using it."
+    export IMAGE_TAG="$INPUT_IMAGE_TAG"
+  fi
+
+  echo "Image tag: $IMAGE_TAG"
 }
 
 setup_git() {
