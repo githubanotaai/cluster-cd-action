@@ -1,0 +1,25 @@
+name: Deploy to Cluster
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and push image
+    runs-on: ubuntu-latest
+    container: igrowdigital/actor:latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Build docker image
+        uses: ./
+        with:
+          build_only: true
+
+          app_name: action-test
+
+          image_owner: ${{ secrets.DOCKER_IMAGE_OWNER }}
+          image_tag: ${{ github.sha }}
+
+          docker_build_registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          docker_build_registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
