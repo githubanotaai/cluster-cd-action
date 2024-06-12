@@ -43,9 +43,11 @@ resolve_environment() {
 
     if [[ "$BRANCH_NAME" == "master" ]] || [[ "$BRANCH_NAME" == "main" ]]; then
       export ENVIRONMENT="production"
+      export ENVIROMENT_SLUG="prod"
     else
       echo "Not in master or main, using staging as default."
       export ENVIRONMENT="staging"
+      export ENVIROMENT_SLUG="stag"
     fi
   else
     echo "Environment set, using it."
@@ -56,24 +58,20 @@ resolve_environment() {
 }
 
 resolve_image_tag() {
-  ref = $(echo $GITHUB_REF | cut -d/ -f3)
+  # INPUT_IMAGE_TAG is always set by the user
 
-  export IMAGE_TAG="${GITHUB_B} ${INPUT_IMAGE_TAG}"
-  
+  if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness."
 
-  if [[ -z "$INPUT_IMAGE_TAG" ]]; then
-    echo "Image tag not set, using commit sha."
-    export IMAGE_TAG="$(echo commit-$GITHUB_SHA | cut -c1-16)"
-  else
-    echo "Image tag set, using it."
-    export IMAGE_TAG="$INPUT_IMAGE_TAG"
-  fi
-  if [[ -z "$INPUT_IMAGE_TAG" ]]; then
-    echo "Image tag not set, using commit sha."
-    export IMAGE_TAG="$(echo commit-$GITHUB_SHA | cut -c1-16)"
-  else
-    echo "Image tag set, using it."
-    export IMAGE_TAG="$INPUT_IMAGE_TAG"
+    branch_slug=$(echo $BRANCH_NAME | cut -c1-16)
+    sha_slug=$(echo $INPUT_IMAGE_TAG | cut -c1-8)
+
+    echo "Environment slug: $ENVIROMENT_SLUG"
+    echo "Branch slug: $branch_slug"
+    echo "SHA slug: $sha_slug"
+
+    export IMAGE_TAG="$ENVIROMENT_SLUG.$branch_slug.$sha_slug"
+
   fi
 
   echo "Image tag: $IMAGE_TAG"
@@ -113,7 +111,8 @@ setup_docker_credentials() {
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
+  # Image tag is now set using resolve_image_tag
+  #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
   echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
@@ -190,6 +189,7 @@ echo "If you have any issues, please contact infra@anota.ai"
 echo "::group::Resolving variables"
 resolve_app_name
 resolve_environment
+resolve_image_tag
 echo "::endgroup::"
 
 echo "::group::Setting up docker credentials"
