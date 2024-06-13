@@ -29,18 +29,18 @@ resolve_environment() {
 
     if [[ "$BRANCH_NAME" == "master" ]] || [[ "$BRANCH_NAME" == "main" ]]; then
       export ENVIRONMENT="production"
-      export ENVIROMENT_SLUG="prod"
     else
       echo "Not in master or main, using staging as default."
       export ENVIRONMENT="staging"
-      export ENVIROMENT_SLUG="stag"
     fi
   else
     echo "Environment set, using it."
     export ENVIRONMENT="$INPUT_ENVIRONMENT"
   fi
-
+  
+  export ENVIROMENT_SLUG="$(echo $ENVIRONMENT | cut -c1-4)"
   echo "Environment: $ENVIRONMENT"
+  echo "Environment slug: $ENVIROMENT_SLUG"
 }
 
 resolve_image_tag() {
