@@ -1,21 +1,5 @@
 #!/bin/bash
 
-#   app_name: backstage
-
-#   deployment_repo: githubanotaai/infrastructure
-#   deployment_repo_token: ${{ secrets.DEPLOYMENT_REPO_TOKEN }}
-#   deployment_repo_yaml_paths: production/backstage/values.yaml
-#   deployment_repo_yaml_imgtag_key: backend.image.tag
-
-#   image_owner: igrowdigital
-#   image_repo: backstage-backend
-#   image_tag: ${{ github.sha }}
-
-#   docker_build_registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
-#   docker_build_registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
-#   docker_build_dockerfile_path: packages/app/Dockerfile
-#   docker_build_context_path: .
-
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RED='\033[0;31m'
@@ -23,12 +7,14 @@ NC='\033[0m'
 
 export BUILD_ONLY="${INPUT_BUILD_ONLY:-"false"}"
 
-# if [[ -f .env ]]; then
-#   echo ".env exists, entering debug mode."
-#   source .env
-# fi
+env_file="_action.env"
+if [[ -f $env_file ]]; then
 
-env
+  echo -e "$YELLOW+------------------------------------------+$NC"
+  echo -e "$YELLOW| $env_file exists, entering debug mode. |$NC"
+  echo -e "$YELLOW+------------------------------------------+$NC"
+  source $env_file
+fi
 
 resolve_app_name() {
   export APP_NAME="${INPUT_APP_NAME:-"$(echo $GITHUB_REPOSITORY | cut -d/ -f2)"}"
@@ -61,17 +47,16 @@ resolve_image_tag() {
   # INPUT_IMAGE_TAG is always set by the user
 
   if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
-    echo "Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness."
+    echo -e "$YELLOW""Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness.$NC"
 
-    branch_slug=$(echo $BRANCH_NAME | cut -c1-16)
+    branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-48)
     sha_slug=$(echo $INPUT_IMAGE_TAG | cut -c1-8)
 
-    echo "Environment slug: $ENVIROMENT_SLUG"
-    echo "Branch slug: $branch_slug"
-    echo "SHA slug: $sha_slug"
+    # echo "Environment slug: $ENVIROMENT_SLUG"
+    # echo "Branch slug: $branch_slug"
+    # echo "SHA slug: $sha_slug"
 
     export IMAGE_TAG="$ENVIROMENT_SLUG.$branch_slug.$sha_slug"
-
   fi
 
   echo "Image tag: $IMAGE_TAG"
@@ -175,14 +160,14 @@ push() {
 }
 
 done_msg() {
-  echo -e "${GREEN}+----------------------------------------+"
-  echo -e "${GREEN}|                  DONE!                 |"
-  echo -e "${GREEN}+----------------------------------------+"
+  echo -e "${GREEN}+----------------------------------------+$NC"
+  echo -e "${GREEN}|                  DONE!                 |$NC"
+  echo -e "${GREEN}+----------------------------------------+$NC"
 }
 
-echo -e "${GREEN}+----------------------------------------+"
-echo -e "${GREEN}|      Running Deploy                    |"
-echo -e "${GREEN}+----------------------------------------+"
+echo -e "${GREEN}+----------------------------------------+$NC"
+echo -e "${GREEN}|      Running Deploy                    |$NC"
+echo -e "${GREEN}+----------------------------------------+$NC"
 
 echo "If you have any issues, please contact infra@anota.ai"
 
