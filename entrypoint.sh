@@ -49,7 +49,7 @@ resolve_image_tag() {
   if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
     echo -e "$YELLOW""Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness.$NC"
 
-    branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-48)
+    branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-42)
     sha_slug=$(echo $INPUT_IMAGE_TAG | cut -c1-8)
 
     # echo "Environment slug: $ENVIROMENT_SLUG"
