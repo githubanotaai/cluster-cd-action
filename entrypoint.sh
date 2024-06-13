@@ -64,7 +64,7 @@ resolve_image_tag() {
 
 setup_git() {
   git config --global user.email "infra@anota.ai" || exit 1
-  git config --global user.name "Infra Team" || exit 1
+  git config --global user.name "Infrastructure Team" || exit 1
   git config --global --add safe.directory /github/workspace || exit 1
 }
 
@@ -155,7 +155,7 @@ push() {
   else 
     echo "Remote is up to date."
   fi
-  git commit -m "chore(${APP_NAME}): bumping ${ENVIRONMENT} image tag" || exit 1
+  git commit -m "chore(${APP_NAME}/${ENVIRONMENT}): updating image tag :)" || exit 1
   git push || exit 1
 }
 
