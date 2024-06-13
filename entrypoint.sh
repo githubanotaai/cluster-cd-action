@@ -57,6 +57,9 @@ resolve_image_tag() {
     # echo "SHA slug: $sha_slug"
 
     export IMAGE_TAG="$ENVIROMENT_SLUG.$branch_slug.$sha_slug"
+  else
+    echo "Image tag is not a commit sha, using it as is."
+    export IMAGE_TAG="$INPUT_IMAGE_TAG"
   fi
 
   echo "Image tag: $IMAGE_TAG"
