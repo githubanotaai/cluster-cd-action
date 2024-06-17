@@ -11,7 +11,7 @@ inputs:
     description: "deployment_repo slug"
     required: false
     default: githubanotaai/deployment-catalog
-  deployment_repo_token:
+  deployment_repo_token_2:
     description: "Github PAT with r/w access to the deployment_repo"
     required: false
   deployment_repo_yaml_paths:
