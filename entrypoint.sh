@@ -73,7 +73,7 @@ setup_git() {
 
 clone_deployment_repo() {
   export DEPLOYMENT_REPO="${INPUT_DEPLOYMENT_REPO}"
-  export DEPLOYMENT_REPO_TOKEN="${INPUT_DEPLOYMENT_REPO_TOKEN_V2}"
+  export DEPLOYMENT_REPO_TOKEN="${INPUT_DEPLOYMENT_REPO_TOKEN_2}"
 
   if [[ "$GITHUB_ACTIONS" == "true" ]]; then
     export DEPLOYMENT_REPO_PATH="/deployment-repo"
