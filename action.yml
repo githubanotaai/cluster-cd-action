@@ -31,6 +31,9 @@ inputs:
   image_tag:
     description: "should be the commit's sha hash"
     required: true
+  npm_consumer_token:
+    description: "npm token to consume org packages"
+    required: false
   docker_build_registry_password:
     description: "docker hub user"
     required: false
