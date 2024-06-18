@@ -99,6 +99,7 @@ setup_docker_credentials() {
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
+  export NPM_CONSUMER_TOKEN="${INPUT_NPM_CONSUMER_TOKEN}"
   # Image tag is now set using resolve_image_tag
   #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
@@ -107,7 +108,7 @@ build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
   export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-  export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
+  export ENVIRONMENT_BUILD_ARG="--build-arg NPM_CONSUMER_TOKEN=${NPM_CONSUMER_TOKEN} ENVIRONMENT=${ENVIRONMENT}"
   export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
   echo "Building image"
