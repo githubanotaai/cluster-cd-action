@@ -60,12 +60,12 @@ inputs:
     description: "Region of the aws account the ECR is in"
     required: false
     default: us-east-1
-  aws_ecr_access_key_id:
-    description: "Access Key Id of the aws account the ECR is in"
-    required: false
-  aws_ecr_secret_access_key:
-    description: "Secret Access Key of the aws account the ECR is in"
-    required: false
+  # aws_ecr_access_key_id:
+  #   description: "Access Key Id of the aws account the ECR is in"
+  #   required: false
+  # aws_ecr_secret_access_key:
+  #   description: "Secret Access Key of the aws account the ECR is in"
+  #   required: false
 runs:
   using: "docker"
   image: "Dockerfile"
