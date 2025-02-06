@@ -51,7 +51,15 @@ inputs:
   build_only:
     description: "if true, only builds and pushes the image"
     required: false
-    default: false
+    default: "false"
+  aws_account_id:
+    description: "ID of the aws account the ECR is in"
+    required: false
+    default: "939030204144"
+  aws_region:
+    description: "Region of the aws account the ECR is in"
+    required: false
+    default: us-east-1
 runs:
   using: "docker"
   image: "Dockerfile"

@@ -89,11 +89,30 @@ clone_deployment_repo() {
   git clone "$DEPLOYMENT_REPO_CLONE_URL" "$DEPLOYMENT_REPO_PATH" || exit 1
 }
 
+
+setup_aws_credentials() {
+  export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
+  export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
+
+  docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
+}
+
 setup_docker_credentials() {
   export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
   export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
   docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
+}
+
+setup_ecr_credentials() {
+  export AWS_REGION=${INPUT_AWS_REGION}
+  export AWS_ACCOUNT_ID=${INPUT_AWS_ACCOUNT_ID}
+  export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+  TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
+  
+  echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
+
 }
 
 build_image() {
@@ -102,11 +121,11 @@ build_image() {
   # Image tag is now set using resolve_image_tag
   #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
-  echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  echo "Image: $IMAGE_REPO:$IMAGE_TAG"
 
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  export DESTINATION="$IMAGE_REPO:$IMAGE_TAG"
   export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
   export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
@@ -115,7 +134,16 @@ build_image() {
 
   docker build $ARGS || exit 1
 
-  docker push "$DESTINATION" || exit 1
+
+  export DESTINATION_DOCKER="$IMAGE_OWNER/$DESTINATION"
+  export DESTINATION_ECR="$AWS_ECR_SERVER/$DESTINATION"
+  
+  docker tag $DESTINATION $DESTINATION_DOCKER
+  docker tag $DESTINATION $DESTINATION_ECR
+
+  docker push "$DESTINATION_DOCKER" || exit 1
+  docker push "$DESTINATION_ECR" || exit 1
+
 }
 
 set_tag_on_yamls() {
@@ -180,8 +208,9 @@ resolve_environment
 resolve_image_tag
 echo "::endgroup::"
 
-echo "::group::Setting up docker credentials"
+echo "::group::Setting up docker/ecr credentials"
 setup_docker_credentials
+setup_ecr_credentials
 echo "::endgroup::"
 
 echo "::group::Setting up Git Credentials"
