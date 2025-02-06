@@ -12,7 +12,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Build docker image
-        uses: ./
+        # uses: ./
+         uses: githubanotaai/cluster-cd-action@master
         with:
           build_only: true
 
