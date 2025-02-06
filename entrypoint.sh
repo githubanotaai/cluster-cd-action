@@ -96,12 +96,10 @@ setup_docker_credentials() {
   export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
   export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
-  echo "$AWS_ECR_SERVER | $AWS_REGION"
-
   # check authentication
   aws sts get-caller-identity || exit 1
 
-  aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $IMAGE_OWNER
+  aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ECR_SERVER
 }
 
 build_image() {
