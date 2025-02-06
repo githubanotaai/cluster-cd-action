@@ -96,7 +96,7 @@ setup_aws_credentials() {
   export AWS_ACCESS_KEY_ID=${INPUT_AWS_ECR_ACCESS_KEY_ID}
   export AWS_SECRET_ACCESS_KEY=${INPUT_AWS_ECR_SECRET_ACCESS_KEY}
 
-  if [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+  if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
     echo "skiping: setup_aws_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
     return
   fi
@@ -107,7 +107,7 @@ setup_aws_credentials() {
 
 setup_ecr_credentials() {
 
-  if [ -z "$AWS_ACCESS_KEY_ID" ] && [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+  if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
     echo "skiping: setup_ecr_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
     return
   fi
