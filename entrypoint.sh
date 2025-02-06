@@ -91,10 +91,12 @@ clone_deployment_repo() {
 
 
 setup_aws_credentials() {
-  export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
-  export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
+  export AWS_REGION=${INPUT_AWS_ECR_REGION}
+  export AWS_ACCOUNT_ID=${INPUT_AWS_ECR_ACCOUNT_ID}
+  export AWS_ACCESS_KEY_ID=${INPUT_AWS_ECR_ACCESS_KEY_ID}
+  export AWS_SECRET_ACCESS_KEY=${INPUT_AWS_ECR_SECRET_ACCESS_KEY}
 
-  docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
+  aws sts get-caller-identity || exit 1
 }
 
 setup_docker_credentials() {
@@ -105,8 +107,6 @@ setup_docker_credentials() {
 }
 
 setup_ecr_credentials() {
-  export AWS_REGION=${INPUT_AWS_REGION}
-  export AWS_ACCOUNT_ID=${INPUT_AWS_ACCOUNT_ID}
   export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
   TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
@@ -208,8 +208,9 @@ resolve_environment
 resolve_image_tag
 echo "::endgroup::"
 
-echo "::group::Setting up docker/ecr credentials"
+echo "::group::Setting up docker/aws/ecr credentials"
 setup_docker_credentials
+setup_aws_credentials
 setup_ecr_credentials
 echo "::endgroup::"
 
