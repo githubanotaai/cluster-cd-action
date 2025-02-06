@@ -90,34 +90,23 @@ clone_deployment_repo() {
 }
 
 
-setup_aws_credentials() {
+setup_ecr_credentials() {
   export AWS_REGION=${INPUT_AWS_ECR_REGION}
   export AWS_ACCOUNT_ID=${INPUT_AWS_ECR_ACCOUNT_ID}
   export AWS_ACCESS_KEY_ID=${INPUT_AWS_ECR_ACCESS_KEY_ID}
   export AWS_SECRET_ACCESS_KEY=${INPUT_AWS_ECR_SECRET_ACCESS_KEY}
 
   if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
-    echo "skiping: setup_aws_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
-    return
-  fi
-
-  aws sts get-caller-identity || exit 1
-}
-
-
-setup_ecr_credentials() {
-
-  if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
     echo "skiping: setup_ecr_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
     return
   fi
 
+  # check authentication
+  aws sts get-caller-identity || exit 1
+
   export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
   TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
-  
   echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
-
 }
 
 setup_docker_credentials() {
@@ -146,14 +135,17 @@ build_image() {
 
   docker build $ARGS || exit 1
 
-
   export DESTINATION_DOCKER="$IMAGE_OWNER/$DESTINATION"
-  export DESTINATION_ECR="$AWS_ECR_SERVER/$DESTINATION"
-  
   docker tag $DESTINATION $DESTINATION_DOCKER
-  docker tag $DESTINATION $DESTINATION_ECR
-
   docker push "$DESTINATION_DOCKER" || exit 1
+
+  if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+    echo "skiping: push to aws ecr. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
+    return
+  fi
+
+  export DESTINATION_ECR="$AWS_ECR_SERVER/$DESTINATION"
+  docker tag $DESTINATION $DESTINATION_ECR
   docker push "$DESTINATION_ECR" || exit 1
 
 }
@@ -220,8 +212,7 @@ resolve_environment
 resolve_image_tag
 echo "::endgroup::"
 
-echo "::group::Setting up aws/ecr/docker credentials"
-setup_aws_credentials
+echo "::group::Setting up docker and ecr credentials"
 setup_ecr_credentials
 setup_docker_credentials
 echo "::endgroup::"
