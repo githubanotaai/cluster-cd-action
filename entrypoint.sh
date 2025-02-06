@@ -106,7 +106,6 @@ setup_docker_credentials() {
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-
   # Image tag is now set using resolve_image_tag
   #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
