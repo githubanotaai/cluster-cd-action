@@ -101,8 +101,7 @@ setup_docker_credentials() {
   # check authentication
   aws sts get-caller-identity || exit 1
 
-  TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
-  echo $TOKEN | docker login --username AWS --password-stdin $IMAGE_OWNER
+  aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $IMAGE_OWNER
 }
 
 build_image() {
