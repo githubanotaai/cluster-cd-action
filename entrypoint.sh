@@ -97,22 +97,14 @@ clone_deployment_repo() {
 # }
 
 setup_docker_credentials() {
-  export AWS_REGION=${INPUT_AWS_ECR_REGION}
+  export AWS_REGION=${INPUT_IMAGE_REGION}
   export AWS_ACCOUNT_ID=${INPUT_AWS_ECR_ACCOUNT_ID}
   export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
-  export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
-  # export AWS_ACCESS_KEY_ID=${INPUT_AWS_ECR_ACCESS_KEY_ID}
-  # export AWS_SECRET_ACCESS_KEY=${INPUT_AWS_ECR_SECRET_ACCESS_KEY}
-
-  # if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
-  #   echo "skiping: setup_ecr_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
-  #   return
-  # fi
+  export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
 
   # check authentication
   aws sts get-caller-identity || exit 1
 
-  export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
   TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
   echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
 }
@@ -120,14 +112,16 @@ setup_docker_credentials() {
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
+  export IMAGE_REGION="${INPUT_IMAGE_REGION}"
+
   # Image tag is now set using resolve_image_tag
   #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
 
-  echo "Image: $IMAGE_REPO:$IMAGE_TAG"
+  echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
 
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="$IMAGE_REPO:$IMAGE_TAG"
+  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
   export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
   export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
@@ -136,18 +130,7 @@ build_image() {
 
   docker build $ARGS || exit 1
 
-  # export DESTINATION_DOCKER="$IMAGE_OWNER/$DESTINATION"
-  # docker tag $DESTINATION $DESTINATION_DOCKER
-  # docker push "$DESTINATION_DOCKER" || exit 1
-
-  # if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
-  #   echo "skiping: push to aws ecr. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
-  #   return
-  # fi
-
-  export DESTINATION_ECR="$AWS_ECR_SERVER/$DESTINATION"
-  docker tag $DESTINATION $DESTINATION_ECR
-  docker push "$DESTINATION_ECR" || exit 1
+  docker push "$DESTINATION" || exit 1
 
 }
 
