@@ -96,6 +96,8 @@ setup_aws_credentials() {
   export AWS_ACCESS_KEY_ID=${INPUT_AWS_ECR_ACCESS_KEY_ID}
   export AWS_SECRET_ACCESS_KEY=${INPUT_AWS_ECR_SECRET_ACCESS_KEY}
 
+  
+
   aws sts get-caller-identity || exit 1
 }
 
