@@ -90,22 +90,22 @@ clone_deployment_repo() {
 }
 
 setup_docker_credentials() {
-  export AWS_REGION=${INPUT_IMAGE_REGION}
-  export AWS_ACCOUNT_ID=${INPUT_AWS_ECR_ACCOUNT_ID}
-  export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
   export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
+  # get region inside ecr server url
+  export AWS_REGION=$(echo $AWS_ECR_SERVER | cut -d '.' -f 4)
+  export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
+  export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
   # check authentication
   aws sts get-caller-identity || exit 1
 
   TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
-  echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
+  echo $TOKEN | docker login --username AWS --password-stdin $IMAGE_OWNER
 }
 
 build_image() {
   export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
   export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  export IMAGE_REGION="${INPUT_IMAGE_REGION}"
 
   # Image tag is now set using resolve_image_tag
   #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
