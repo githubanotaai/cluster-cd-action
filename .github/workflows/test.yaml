@@ -23,3 +23,6 @@ jobs:
 
           docker_build_registry_password: ${{ secrets.DOCKERHUB_PASSWORD }}
           docker_build_registry_username: ${{ secrets.DOCKERHUB_USERNAME }}
+
+          aws_ecr_access_key_id:  ${{ secrets.AWS_ECR_ACCESS_KEY_ID }}
+          aws_ecr_secret_access_key: ${{ secrets.AWS_ECR_SECRET_ACCESS_KEY }}
