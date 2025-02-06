@@ -98,9 +98,10 @@ setup_aws_credentials() {
 
   if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
     echo "skiping: setup_aws_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
-  else
-    aws sts get-caller-identity || exit 1
+    return
   fi
+
+  aws sts get-caller-identity || exit 1
 }
 
 
@@ -108,11 +109,15 @@ setup_ecr_credentials() {
 
   if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
     echo "skiping: setup_ecr_credentials. Inputs 'aws_ecr_access_key_id' and 'aws_ecr_secret_access_key' is not set or empty."
-  else
-    export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-    TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
-    echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
+    return
   fi
+
+  export AWS_ECR_SERVER="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+  TOKEN=$(aws ecr get-login-password --region $AWS_REGION)
+  
+  echo $TOKEN | docker login --username AWS --password-stdin $AWS_ECR_SERVER
+
 }
 
 setup_docker_credentials() {
