@@ -25,10 +25,6 @@ inputs:
     description: "aws ECR server"
     required: false
     default: "939030204144.dkr.ecr.us-east-1.amazonaws.com"
-  image_region:
-    description: "aws ECR region"
-    required: false
-    default: us-east-1
   image_repo:
     description: "should be the same as app_name"
     required: false

@@ -92,7 +92,7 @@ clone_deployment_repo() {
 setup_docker_credentials() {
   export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
   # get region inside ecr server url
-  export AWS_REGION=$(echo $AWS_ECR_SERVER | cut -d '.' -f 4)
+  export AWS_REGION=$(echo $INPUT_IMAGE_OWNER | cut -d '.' -f 4)
   export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
   export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
