@@ -123,7 +123,6 @@ build_image() {
   docker build $ARGS || exit 1
 
   docker push "$DESTINATION" || exit 1
-
 }
 
 set_tag_on_yamls() {
