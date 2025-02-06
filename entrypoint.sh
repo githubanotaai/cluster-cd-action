@@ -89,13 +89,6 @@ clone_deployment_repo() {
   git clone "$DEPLOYMENT_REPO_CLONE_URL" "$DEPLOYMENT_REPO_PATH" || exit 1
 }
 
-# setup_docker_credentials() {
-#   export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
-#   export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
-
-#   docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
-# }
-
 setup_docker_credentials() {
   export AWS_REGION=${INPUT_IMAGE_REGION}
   export AWS_ACCOUNT_ID=${INPUT_AWS_ECR_ACCOUNT_ID}
