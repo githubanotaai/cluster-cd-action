@@ -22,9 +22,9 @@ inputs:
     required: false
     default: "image.tag"
   image_owner:
-    description: "docker hub user"
+    description: "aws ECR server"
     required: false
-    default: "igrowdigital"
+    default: "939030204144.dkr.ecr.us-east-1.amazonaws.com"
   image_repo:
     description: "should be the same as app_name"
     required: false
@@ -51,7 +51,7 @@ inputs:
   build_only:
     description: "if true, only builds and pushes the image"
     required: false
-    default: false
+    default: "false"
 runs:
   using: "docker"
   image: "Dockerfile"

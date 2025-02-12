@@ -90,10 +90,16 @@ clone_deployment_repo() {
 }
 
 setup_docker_credentials() {
-  export DOCKER_BUILD_REGISTRY_USERNAME=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
-  export DOCKER_BUILD_REGISTRY_PASSWORD=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
+  export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
+  # get region inside ecr server url
+  export AWS_REGION=$(echo $INPUT_IMAGE_OWNER | cut -d '.' -f 4)
+  export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
+  export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
 
-  docker login -u "$DOCKER_BUILD_REGISTRY_USERNAME" -p "$DOCKER_BUILD_REGISTRY_PASSWORD" || exit 1
+  # check authentication
+  aws sts get-caller-identity || exit 1
+
+  aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ECR_SERVER
 }
 
 build_image() {
