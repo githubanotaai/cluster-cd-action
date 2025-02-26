@@ -45,6 +45,7 @@ resolve_environment() {
 
 resolve_image_tag() {
   # INPUT_IMAGE_TAG is always set by the user
+  echo "🔍 Starting image tag resolution..."
 
   if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
     echo -e "$YELLOW""Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness.$NC"
@@ -52,9 +53,9 @@ resolve_image_tag() {
     branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-42)
     sha_slug=$(echo $INPUT_IMAGE_TAG | cut -c1-8)
 
-    # echo "Environment slug: $ENVIROMENT_SLUG"
-    # echo "Branch slug: $branch_slug"
-    # echo "SHA slug: $sha_slug"
+    echo "Environment slug: $ENVIROMENT_SLUG"
+    echo "Branch slug: $branch_slug"
+    echo "SHA slug: $sha_slug"
 
     export IMAGE_TAG="$ENVIROMENT_SLUG.$branch_slug.$sha_slug"
   else
@@ -62,15 +63,26 @@ resolve_image_tag() {
     export IMAGE_TAG="$INPUT_IMAGE_TAG"
   fi
 
+  export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
+  export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
+  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  
+  echo -e "${YELLOW}Resolved image: $DESTINATION$NC"
+
   # Check if the image tag already exists
-  if docker pull "$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG" &> /dev/null; then
-    echo -e "$RED""Image tag $IMAGE_TAG already exists. Skipping push.$NC"
-    export SKIP_PUSH="true"
+  echo "🔍 Checking if image already exists in registry..."
+  if docker pull "$DESTINATION" &> /dev/null; then
+    echo -e "$GREEN""✅ Image $DESTINATION already exists in registry.$NC"
+    echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
+    export SKIP_BUILD_AND_PUSH="true"
   else
-    export SKIP_PUSH="false"
+    echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in registry.$NC"
+    echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
+    export SKIP_BUILD_AND_PUSH="false"
   fi
 
-  echo "Image tag: $IMAGE_TAG"
+  echo "Final image tag: $IMAGE_TAG"
+  echo "Skip build and push flag: $SKIP_BUILD_AND_PUSH"
 }
 
 setup_git() {
@@ -111,29 +123,54 @@ setup_docker_credentials() {
 }
 
 build_image() {
-  export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
-  export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  # Image tag is now set using resolve_image_tag
-  #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
+  echo "🏗️ Starting build process..."
+  
+  # Skip both build and push if image already exists
+  if [[ "$SKIP_BUILD_AND_PUSH" == "true" ]]; then
+    echo -e "$GREEN""⏩ Skipping build for existing image: $DESTINATION$NC"
+    echo -e "$GREEN""⏩ Using existing image from registry$NC"
+    echo -e "$GREEN""⏩ This saves CI/CD time and resources$NC"
+    
+    # Set this variable so the deployment process knows to use the existing image
+    export IMAGE_EXISTS="true"
+    return 0
+  fi
 
-  echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-
+  echo -e "$YELLOW""🏗️ Building image: $DESTINATION$NC"
+  
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
   export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
   export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
-  echo "Building image"
-  echo "docker build args: $ARGS"
+  echo "Docker build context: $CONTEXT"
+  echo "Dockerfile path: $DOCKERFILE"
+  echo "Environment build arg: $ENVIRONMENT_BUILD_ARG"
+  echo "Full docker build command: docker build $ARGS"
 
-  docker build $ARGS || exit 1
-
-  if [[ "$SKIP_PUSH" == "false" ]]; then
-    docker push "$DESTINATION" || exit 1
-  else
-    echo "Skipping push for existing image tag: $IMAGE_TAG"
+  echo -e "$YELLOW""Starting docker build...$NC"
+  docker build $ARGS || { 
+    echo -e "$RED""❌ Docker build failed$NC"
+    exit 1
+  }
+  
+  echo -e "$GREEN""✅ Docker build successful$NC"
+  echo -e "$YELLOW""Pushing image to registry: $DESTINATION$NC"
+  
+  # Try to push the image, but handle the case where the repository is immutable
+  if ! docker push "$DESTINATION" 2>&1 | tee /tmp/docker_push_output.log; then
+    if grep -q "repository is immutable" /tmp/docker_push_output.log; then
+      echo -e "$YELLOW""⚠️ Repository is immutable and image tag already exists.$NC"
+      echo -e "$YELLOW""⚠️ Using the existing image from the registry.$NC"
+      export IMAGE_EXISTS="true"
+      return 0
+    else
+      echo -e "$RED""❌ Docker push failed for an unknown reason$NC"
+      exit 1
+    fi
   fi
+  
+  echo -e "$GREEN""✅ Successfully pushed image to registry: $DESTINATION$NC"
 }
 
 set_tag_on_yamls() {
