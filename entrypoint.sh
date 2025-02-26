@@ -62,6 +62,14 @@ resolve_image_tag() {
     export IMAGE_TAG="$INPUT_IMAGE_TAG"
   fi
 
+  # Check if the image tag already exists
+  if docker pull "$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG" &> /dev/null; then
+    echo -e "$RED""Image tag $IMAGE_TAG already exists. Skipping push.$NC"
+    export SKIP_PUSH="true"
+  else
+    export SKIP_PUSH="false"
+  fi
+
   echo "Image tag: $IMAGE_TAG"
 }
 
@@ -121,7 +129,11 @@ build_image() {
 
   docker build $ARGS || exit 1
 
-  docker push "$DESTINATION" || exit 1
+  if [[ "$SKIP_PUSH" == "false" ]]; then
+    docker push "$DESTINATION" || exit 1
+  else
+    echo "Skipping push for existing image tag: $IMAGE_TAG"
+  fi
 }
 
 set_tag_on_yamls() {
