@@ -68,8 +68,7 @@ resolve_image_tag() {
   export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
   
   echo -e "${YELLOW}Resolved image: $DESTINATION$NC"
-
-  # Check if the image tag already exists
+  
   echo "🔍 Checking if image already exists in registry..."
   if docker pull "$DESTINATION" &> /dev/null; then
     echo -e "$GREEN""✅ Image $DESTINATION already exists in registry.$NC"
@@ -237,6 +236,8 @@ echo "::endgroup::"
 
 echo "::group::Setting up docker credentials"
 setup_docker_credentials
+
+check_image_exists
 echo "::endgroup::"
 
 echo "::group::Setting up Git Credentials"
