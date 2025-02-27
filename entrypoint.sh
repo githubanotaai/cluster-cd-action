@@ -72,9 +72,23 @@ resolve_image_tag() {
   if [[ "$IMAGE_OWNER" == *"ecr"* ]]; then
     echo "🔍 Checking if image already exists in ECR container registry..."
     
-    ECR_TAG="$IMAGE_TAG"
-    AWS_REGION=$(echo $IMAGE_OWNER | cut -d '.' -f 4)
+    # Set up AWS credentials before checking ECR
+    export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
+    export AWS_REGION=$(echo $INPUT_IMAGE_OWNER | cut -d '.' -f 4)
+    export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
+    export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
     
+    # Verify credentials are working
+    echo "Verifying AWS credentials..."
+    if ! aws sts get-caller-identity > /dev/null 2>&1; then
+      echo -e "$RED""❌ AWS credentials verification failed. Check your credentials.$NC"
+      echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+      return
+    fi
+    
+    ECR_TAG="$IMAGE_TAG"
     AWS_ACCOUNT_ID=$(echo $IMAGE_OWNER | cut -d '.' -f 1)
     
     echo "Checking for tag: $ECR_TAG in region: $AWS_REGION with account ID: $AWS_ACCOUNT_ID"
