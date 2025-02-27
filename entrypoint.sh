@@ -71,12 +71,12 @@ resolve_image_tag() {
   
   if [[ "$IMAGE_OWNER" == *"ecr"* ]]; then
     echo "🔍 Checking if image already exists in ECR container registry..."
-    ECR_REPO="$IMAGE_REPO"
-    ECR_TAG="$IMAGE_TAG"    
     
-    AWS_REGION=$(echo $IMAGE_OWNER | cut -d '.' -f 4)    
-
-    if aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" &> /dev/null; then
+    ECR_TAG="$IMAGE_TAG"
+    AWS_REGION=$(echo $IMAGE_OWNER | cut -d '.' -f 4)
+    
+    echo "Checking for tag: $ECR_TAG in region: $AWS_REGION"
+    if aws ecr describe-images --repository-name "$IMAGE_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" &> /dev/null; then
       echo -e "$GREEN""✅ Image $DESTINATION already exists in container registry.$NC"
       echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
       export SKIP_BUILD_AND_PUSH="true"
@@ -87,7 +87,7 @@ resolve_image_tag() {
       export SKIP_BUILD_AND_PUSH="false"
       export IMAGE_EXISTS="false"
     fi
-  else    
+  else
     echo "🔍 Checking if image already exists in container registry..."
     if docker pull "$DESTINATION" &> /dev/null; then
       echo -e "$GREEN""✅ Image $DESTINATION already exists in container registry.$NC"
