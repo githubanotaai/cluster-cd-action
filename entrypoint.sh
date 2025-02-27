@@ -44,25 +44,142 @@ resolve_environment() {
 }
 
 resolve_image_tag() {
-  # INPUT_IMAGE_TAG is always set by the user
+  echo -e "$BLUE""┌─────────────────────────────────────────────┐$NC"
+  echo -e "$BLUE""│       🔍 IMAGE TAG RESOLUTION               │$NC"
+  echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
 
   if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
-    echo -e "$YELLOW""Image tag looks like a commit sha, prepending it with additional info to ensure uniqueness.$NC"
+    echo -e "$YELLOW""📝 Image tag looks like a commit SHA, creating a more descriptive tag...$NC"
 
     branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-42)
     sha_slug=$(echo $INPUT_IMAGE_TAG | cut -c1-8)
 
-    # echo "Environment slug: $ENVIROMENT_SLUG"
-    # echo "Branch slug: $branch_slug"
-    # echo "SHA slug: $sha_slug"
+    echo -e "$CYAN""   ├─ Environment slug: $ENVIROMENT_SLUG$NC"
+    echo -e "$CYAN""   ├─ Branch slug: $branch_slug$NC"
+    echo -e "$CYAN""   └─ SHA slug: $sha_slug$NC"
 
     export IMAGE_TAG="$ENVIROMENT_SLUG.$branch_slug.$sha_slug"
   else
-    echo "Image tag is not a commit sha, using it as is."
+    echo -e "$YELLOW""📝 Using provided image tag as is.$NC"
     export IMAGE_TAG="$INPUT_IMAGE_TAG"
   fi
 
-  echo "Image tag: $IMAGE_TAG"
+  export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
+  export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
+  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
+  
+  echo -e "$GREEN""✅ Resolved image: $DESTINATION$NC"
+  
+  echo -e "$BLUE""┌─────────────────────────────────────────────┐$NC"
+  echo -e "$BLUE""│       🔍 IMAGE EXISTENCE CHECK              │$NC"
+  echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
+  
+  if [[ "$IMAGE_OWNER" == *"ecr"* ]]; then
+    echo -e "$YELLOW""📡 Checking if image exists in AWS ECR registry...$NC"
+    
+    # Set up AWS credentials before checking ECR
+    export AWS_ECR_SERVER="${INPUT_IMAGE_OWNER}"
+    export AWS_REGION=$(echo $INPUT_IMAGE_OWNER | cut -d '.' -f 4)
+    export AWS_ACCESS_KEY_ID=${INPUT_DOCKER_BUILD_REGISTRY_USERNAME}
+    export AWS_SECRET_ACCESS_KEY=${INPUT_DOCKER_BUILD_REGISTRY_PASSWORD}
+    
+    # Verify credentials are working
+    echo -e "$CYAN""   ├─ Verifying AWS credentials...$NC"
+    if ! aws sts get-caller-identity > /dev/null 2>&1; then
+      echo -e "$RED""   ├─ ❌ AWS credentials verification failed$NC"
+      echo -e "$RED""   └─ ⚠️ Unable to check if image exists, will proceed with build$NC"
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+      return
+    fi
+    
+    echo -e "$GREEN""   ├─ ✅ AWS credentials verified$NC"
+    
+    ECR_TAG="$IMAGE_TAG"
+    AWS_ACCOUNT_ID=$(echo $IMAGE_OWNER | cut -d '.' -f 1)
+    
+    echo -e "$CYAN""   ├─ Registry ID: $AWS_ACCOUNT_ID$NC"
+    echo -e "$CYAN""   ├─ Repository: $IMAGE_REPO$NC"
+    echo -e "$CYAN""   ├─ Image tag: $ECR_TAG$NC"
+    echo -e "$CYAN""   └─ Region: $AWS_REGION$NC"
+    
+    ECR_OUTPUT_FILE=$(mktemp)
+    
+    echo -e "$YELLOW""📡 Querying ECR API...$NC"
+    if aws ecr describe-images --repository-name "$IMAGE_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" --registry-id "$AWS_ACCOUNT_ID" > "$ECR_OUTPUT_FILE" 2>&1; then
+      echo -e "$GREEN""✅ Image $DESTINATION exists in ECR registry$NC"
+      echo -e "$GREEN""✅ Skipping build and push to save time and resources$NC"
+      
+      # Extract and display image details
+      IMAGE_DIGEST=$(cat "$ECR_OUTPUT_FILE" | jq -r '.imageDetails[0].imageDigest' 2>/dev/null || echo "N/A")
+      IMAGE_SIZE=$(cat "$ECR_OUTPUT_FILE" | jq -r '.imageDetails[0].imageSizeInBytes' 2>/dev/null || echo "N/A")
+      if [[ "$IMAGE_SIZE" != "N/A" ]]; then
+        IMAGE_SIZE_MB=$(echo "scale=2; $IMAGE_SIZE / 1024 / 1024" | bc)
+        IMAGE_SIZE="$IMAGE_SIZE_MB MB"
+      fi
+      PUSHED_AT=$(cat "$ECR_OUTPUT_FILE" | jq -r '.imageDetails[0].imagePushedAt' 2>/dev/null || echo "N/A")
+      
+      echo -e "$CYAN""   ├─ Image digest: $IMAGE_DIGEST$NC"
+      echo -e "$CYAN""   ├─ Image size: $IMAGE_SIZE$NC"
+      echo -e "$CYAN""   └─ Pushed at: $PUSHED_AT$NC"
+      
+      export SKIP_BUILD_AND_PUSH="true"
+      export IMAGE_EXISTS="true"
+    else
+      echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in ECR registry$NC"
+      echo -e "$YELLOW""🔨 Will proceed with build and push$NC"
+      
+      # Display error for debugging
+      ERROR_MSG=$(cat "$ECR_OUTPUT_FILE")
+      if [[ -n "$ERROR_MSG" ]]; then
+        echo -e "$RED""   └─ Error: $ERROR_MSG$NC"
+      fi
+      
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+    fi
+    
+    rm -f "$ECR_OUTPUT_FILE"
+  else
+    echo -e "$YELLOW""📡 Checking if image exists in Docker registry...$NC"
+    DOCKER_OUTPUT_FILE=$(mktemp)
+    
+    if docker pull "$DESTINATION" > "$DOCKER_OUTPUT_FILE" 2>&1; then
+      echo -e "$GREEN""✅ Image $DESTINATION exists in Docker registry$NC"
+      echo -e "$GREEN""✅ Skipping build and push to save time and resources$NC"
+      
+      # Get image details
+      IMAGE_ID=$(docker inspect --format='{{.Id}}' "$DESTINATION" 2>/dev/null || echo "N/A")
+      IMAGE_CREATED=$(docker inspect --format='{{.Created}}' "$DESTINATION" 2>/dev/null || echo "N/A")
+      
+      echo -e "$CYAN""   ├─ Image ID: $IMAGE_ID$NC"
+      echo -e "$CYAN""   └─ Created: $IMAGE_CREATED$NC"
+      
+      export SKIP_BUILD_AND_PUSH="true"
+      export IMAGE_EXISTS="true"
+    else
+      echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in Docker registry$NC"
+      echo -e "$YELLOW""🔨 Will proceed with build and push$NC"
+      
+      # Display error for debugging
+      ERROR_MSG=$(cat "$DOCKER_OUTPUT_FILE")
+      if [[ -n "$ERROR_MSG" ]]; then
+        echo -e "$RED""   └─ Error: $ERROR_MSG$NC"
+      fi
+      
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+    fi
+    
+    rm -f "$DOCKER_OUTPUT_FILE"
+  fi
+
+  echo -e "$BLUE""┌─────────────────────────────────────────────┐$NC"
+  echo -e "$BLUE""│       📋 IMAGE TAG SUMMARY                  │$NC"
+  echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
+  echo -e "$CYAN""   ├─ Final image tag: $IMAGE_TAG$NC"
+  echo -e "$CYAN""   ├─ Skip build and push: $SKIP_BUILD_AND_PUSH$NC"
+  echo -e "$CYAN""   └─ Image exists: $IMAGE_EXISTS$NC"
 }
 
 setup_git() {
@@ -103,25 +220,54 @@ setup_docker_credentials() {
 }
 
 build_image() {
-  export IMAGE_OWNER="${INPUT_IMAGE_OWNER}"
-  export IMAGE_REPO="${INPUT_IMAGE_REPO:-$APP_NAME}"
-  # Image tag is now set using resolve_image_tag
-  #export IMAGE_TAG="$(echo commit-$INPUT_IMAGE_TAG | cut -c1-16)"
+  echo -e "$BLUE""┌─────────────────────────────────────────────┐$NC"
+  echo -e "$BLUE""│       🏗️ BUILD PROCESS                      │$NC"
+  echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
+  
+  # Skip both build and push if image already exists
+  if [[ "$SKIP_BUILD_AND_PUSH" == "true" ]]; then
+    echo -e "$GREEN""⏩ Skipping build for existing image: $DESTINATION$NC"
+    echo -e "$GREEN""⏩ Using existing image from container registry$NC"
+    echo -e "$GREEN""⏩ This saves CI/CD time and resources$NC"
+    
+    # Set this variable so the deployment process knows to use the existing image
+    export IMAGE_EXISTS="true"
+    return 0
+  fi
 
-  echo "Image: $IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
-
+  echo -e "$YELLOW""🏗️ Building image: $DESTINATION$NC"
+  
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
-  export DESTINATION="$IMAGE_OWNER/$IMAGE_REPO:$IMAGE_TAG"
   export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
   export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
 
-  echo "Building image"
-  echo "docker build args: $ARGS"
+  echo -e "$CYAN""   ├─ Docker build context: $CONTEXT$NC"
+  echo -e "$CYAN""   ├─ Dockerfile path: $DOCKERFILE$NC"
+  echo -e "$CYAN""   ├─ Environment build arg: $ENVIRONMENT_BUILD_ARG$NC"
+  echo -e "$CYAN""   └─ Full docker build command: docker build $ARGS$NC"
 
-  docker build $ARGS || exit 1
+  echo -e "$YELLOW""🚀 Starting docker build...$NC"
+  if docker build $ARGS; then
+    echo -e "$GREEN""✅ Docker build successful$NC"
+  else
+    echo -e "$RED""❌ Docker build failed$NC"
+    exit 1
+  fi
 
-  docker push "$DESTINATION" || exit 1
+  echo -e "$YELLOW""📤 Pushing image to container registry: $DESTINATION$NC"
+  if docker push $DESTINATION; then
+    echo -e "$GREEN""✅ Successfully pushed image to container registry: $DESTINATION$NC"
+  else
+    PUSH_EXIT_CODE=$?
+    if [[ $PUSH_EXIT_CODE -eq 1 ]] && docker push $DESTINATION 2>&1 | grep -q "already exists"; then
+      echo -e "$YELLOW""⚠️ Image already exists in registry (repository is immutable)$NC"
+      echo -e "$GREEN""✅ Using existing image: $DESTINATION$NC"
+    else
+      echo -e "$RED""❌ Docker push failed for an unknown reason$NC"
+      exit 1
+    fi
+  fi
 }
 
 set_tag_on_yamls() {
