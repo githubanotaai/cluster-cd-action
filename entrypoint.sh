@@ -69,19 +69,42 @@ resolve_image_tag() {
   
   echo -e "${YELLOW}Resolved image: $DESTINATION$NC"
   
-  echo "🔍 Checking if image already exists in registry..."
-  if docker pull "$DESTINATION" &> /dev/null; then
-    echo -e "$GREEN""✅ Image $DESTINATION already exists in registry.$NC"
-    echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
-    export SKIP_BUILD_AND_PUSH="true"
-  else
-    echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in registry.$NC"
-    echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
-    export SKIP_BUILD_AND_PUSH="false"
+  if [[ "$IMAGE_OWNER" == *"ecr"* ]]; then
+    echo "🔍 Checking if image already exists in ECR container registry..."
+    ECR_REPO="$IMAGE_REPO"
+    ECR_TAG="$IMAGE_TAG"    
+    
+    AWS_REGION=$(echo $IMAGE_OWNER | cut -d '.' -f 4)    
+
+    if aws ecr describe-images --repository-name "$ECR_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" &> /dev/null; then
+      echo -e "$GREEN""✅ Image $DESTINATION already exists in container registry.$NC"
+      echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
+      export SKIP_BUILD_AND_PUSH="true"
+      export IMAGE_EXISTS="true"
+    else
+      echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in container registry.$NC"
+      echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+    fi
+  else    
+    echo "🔍 Checking if image already exists in container registry..."
+    if docker pull "$DESTINATION" &> /dev/null; then
+      echo -e "$GREEN""✅ Image $DESTINATION already exists in container registry.$NC"
+      echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
+      export SKIP_BUILD_AND_PUSH="true"
+      export IMAGE_EXISTS="true"
+    else
+      echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in container registry.$NC"
+      echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
+      export SKIP_BUILD_AND_PUSH="false"
+      export IMAGE_EXISTS="false"
+    fi
   fi
 
   echo "Final image tag: $IMAGE_TAG"
   echo "Skip build and push flag: $SKIP_BUILD_AND_PUSH"
+  echo "Image exists flag: $IMAGE_EXISTS"
 }
 
 setup_git() {
@@ -127,7 +150,7 @@ build_image() {
   # Skip both build and push if image already exists
   if [[ "$SKIP_BUILD_AND_PUSH" == "true" ]]; then
     echo -e "$GREEN""⏩ Skipping build for existing image: $DESTINATION$NC"
-    echo -e "$GREEN""⏩ Using existing image from registry$NC"
+    echo -e "$GREEN""⏩ Using existing image from container registry$NC"
     echo -e "$GREEN""⏩ This saves CI/CD time and resources$NC"
     
     # Set this variable so the deployment process knows to use the existing image
@@ -154,13 +177,13 @@ build_image() {
   }
   
   echo -e "$GREEN""✅ Docker build successful$NC"
-  echo -e "$YELLOW""Pushing image to registry: $DESTINATION$NC"
+  echo -e "$YELLOW""Pushing image to container registry: $DESTINATION$NC"
   
   # Try to push the image, but handle the case where the repository is immutable
   if ! docker push "$DESTINATION" 2>&1 | tee /tmp/docker_push_output.log; then
     if grep -q "repository is immutable" /tmp/docker_push_output.log; then
       echo -e "$YELLOW""⚠️ Repository is immutable and image tag already exists.$NC"
-      echo -e "$YELLOW""⚠️ Using the existing image from the registry.$NC"
+      echo -e "$YELLOW""⚠️ Using the existing image from the container registry.$NC"
       export IMAGE_EXISTS="true"
       return 0
     else
@@ -169,7 +192,7 @@ build_image() {
     fi
   fi
   
-  echo -e "$GREEN""✅ Successfully pushed image to registry: $DESTINATION$NC"
+  echo -e "$GREEN""✅ Successfully pushed image to container registry: $DESTINATION$NC"
 }
 
 set_tag_on_yamls() {
@@ -236,9 +259,6 @@ echo "::endgroup::"
 
 echo "::group::Setting up docker credentials"
 setup_docker_credentials
-
-check_image_exists
-echo "::endgroup::"
 
 echo "::group::Setting up Git Credentials"
 setup_git
