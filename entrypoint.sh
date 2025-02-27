@@ -334,6 +334,7 @@ echo "::endgroup::"
 
 echo "::group::Setting up docker credentials"
 setup_docker_credentials
+echo "::endgroup::"
 
 echo "::group::Setting up Git Credentials"
 setup_git
