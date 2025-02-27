@@ -75,18 +75,30 @@ resolve_image_tag() {
     ECR_TAG="$IMAGE_TAG"
     AWS_REGION=$(echo $IMAGE_OWNER | cut -d '.' -f 4)
     
-    echo "Checking for tag: $ECR_TAG in region: $AWS_REGION"
-    if aws ecr describe-images --repository-name "$IMAGE_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" &> /dev/null; then
+    AWS_ACCOUNT_ID=$(echo $IMAGE_OWNER | cut -d '.' -f 1)
+    
+    echo "Checking for tag: $ECR_TAG in region: $AWS_REGION with account ID: $AWS_ACCOUNT_ID"
+    echo "Full ECR command: aws ecr describe-images --repository-name \"$IMAGE_REPO\" --image-ids imageTag=\"$ECR_TAG\" --region \"$AWS_REGION\" --registry-id \"$AWS_ACCOUNT_ID\""
+    
+    ECR_OUTPUT_FILE=$(mktemp)
+    
+    if aws ecr describe-images --repository-name "$IMAGE_REPO" --image-ids imageTag="$ECR_TAG" --region "$AWS_REGION" --registry-id "$AWS_ACCOUNT_ID" > "$ECR_OUTPUT_FILE" 2>&1; then
       echo -e "$GREEN""✅ Image $DESTINATION already exists in container registry.$NC"
       echo -e "$GREEN""✅ Skipping build and push to save time and resources.$NC"
+      echo "ECR command output:"
+      cat "$ECR_OUTPUT_FILE"
       export SKIP_BUILD_AND_PUSH="true"
       export IMAGE_EXISTS="true"
     else
       echo -e "$YELLOW""🔍 Image $DESTINATION does not exist in container registry.$NC"
       echo -e "$YELLOW""🔨 Will proceed with build and push.$NC"
+      echo "ECR command error output:"
+      cat "$ECR_OUTPUT_FILE"
       export SKIP_BUILD_AND_PUSH="false"
       export IMAGE_EXISTS="false"
     fi
+    
+    rm -f "$ECR_OUTPUT_FILE"
   else
     echo "🔍 Checking if image already exists in container registry..."
     if docker pull "$DESTINATION" &> /dev/null; then
