@@ -48,7 +48,12 @@ resolve_image_tag() {
   echo -e "$BLUE""│       🔍 IMAGE TAG RESOLUTION               │$NC"
   echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
 
-  if [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+  if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+    TAG_NAME="${GITHUB_REF#refs/tags/}"
+    echo -e "$YELLOW""📝 Detected git tag push. Using tag as image tag: $TAG_NAME$NC"
+    export IMAGE_TAG="$TAG_NAME"
+    
+  elif [[ "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
     echo -e "$YELLOW""📝 Image tag looks like a commit SHA, creating a more descriptive tag...$NC"
 
     branch_slug=$(echo $GITHUB_REF | cut -d/ -f3- | sed 's/[^a-zA-Z0-9\/-]//g' | sed 's/\//_/g' | cut -c1-42)
@@ -240,7 +245,8 @@ build_image() {
   export CONTEXT="${INPUT_DOCKER_BUILD_CONTEXT_PATH:-"."}"
   export DOCKERFILE="-f ${INPUT_DOCKER_BUILD_DOCKERFILE_PATH:-"./Dockerfile"}"
   export ENVIRONMENT_BUILD_ARG="--build-arg ENVIRONMENT=${ENVIRONMENT}"
-  export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $CONTEXT -t $DESTINATION"
+  export READONLY_GH_TOKEN_ARG="--build-arg READONLY_GH_TOKEN=${INPUT_READONLY_GH_TOKEN:-""}"
+  export ARGS="$DOCKERFILE $ENVIRONMENT_BUILD_ARG $READONLY_GH_TOKEN_ARG $CONTEXT -t $DESTINATION"
 
   echo -e "$CYAN""   ├─ Docker build context: $CONTEXT$NC"
   echo -e "$CYAN""   ├─ Dockerfile path: $DOCKERFILE$NC"
