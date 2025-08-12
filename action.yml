@@ -52,6 +52,10 @@ inputs:
     description: "if true, only builds and pushes the image"
     required: false
     default: "false"
+  readonly_gh_token:
+    description: "GitHub Token with read-only access (usually GITHUB_TOKEN). Used to facilitate Docker builds that need to pull private repos."
+    required: false
+    default: ""
 runs:
   using: "docker"
   image: "Dockerfile"
