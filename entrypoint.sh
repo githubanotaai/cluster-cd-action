@@ -229,13 +229,11 @@ build_image() {
   echo -e "$BLUE""│       🏗️ BUILD PROCESS                      │$NC"
   echo -e "$BLUE""└─────────────────────────────────────────────┘$NC"
   
-  # Skip both build and push if image already exists
   if [[ "$SKIP_BUILD_AND_PUSH" == "true" ]]; then
     echo -e "$GREEN""⏩ Skipping build for existing image: $DESTINATION$NC"
     echo -e "$GREEN""⏩ Using existing image from container registry$NC"
     echo -e "$GREEN""⏩ This saves CI/CD time and resources$NC"
     
-    # Set this variable so the deployment process knows to use the existing image
     export IMAGE_EXISTS="true"
     return 0
   fi
@@ -262,18 +260,35 @@ build_image() {
   fi
 
   echo -e "$YELLOW""📤 Pushing image to container registry: $DESTINATION$NC"
-  if docker push $DESTINATION; then
+  PUSH_OUTPUT_FILE=$(mktemp)
+  
+  if docker push $DESTINATION > "$PUSH_OUTPUT_FILE" 2>&1; then
     echo -e "$GREEN""✅ Successfully pushed image to container registry: $DESTINATION$NC"
   else
     PUSH_EXIT_CODE=$?
-    if [[ $PUSH_EXIT_CODE -eq 1 ]] && docker push $DESTINATION 2>&1 | grep -q "already exists"; then
+    PUSH_ERROR=$(cat "$PUSH_OUTPUT_FILE")
+    
+    if [[ $PUSH_ERROR == *"repository does not exist"* ]] || [[ $PUSH_ERROR == *"not found"* && $PUSH_ERROR == *"repository"* ]]; then
+      echo -e "$RED""❌ Docker push failed: Repository does not exist in ECR$NC"
+      echo -e "$YELLOW""⚠️ The repository '$IMAGE_REPO' does not exist in the ECR registry$NC"
+      echo -e "$YELLOW""ℹ️ ECR repositories are managed through Infrastructure as Code (IaC)$NC"
+      echo -e "$YELLOW""ℹ️ Please contact the SRE team to:$NC"
+      echo -e "$CYAN""   1. Request the creation of the '$IMAGE_REPO' repository$NC"
+      echo -e "$CYAN""   2. Ensure proper permissions are configured for your CI/CD pipeline$NC"
+      echo -e "$CYAN""   3. Get assistance with ECR repository management$NC"
+      echo -e "$YELLOW""ℹ️ For more information, contact: sre@anota.ai$NC"
+      exit 1
+    elif [[ $PUSH_EXIT_CODE -eq 1 ]] && [[ $PUSH_ERROR == *"already exists"* ]]; then
       echo -e "$YELLOW""⚠️ Image already exists in registry (repository is immutable)$NC"
       echo -e "$GREEN""✅ Using existing image: $DESTINATION$NC"
     else
-      echo -e "$RED""❌ Docker push failed for an unknown reason$NC"
+      echo -e "$RED""❌ Docker push failed for an unknown reason:$NC"
+      echo -e "$RED""   $PUSH_ERROR$NC"
       exit 1
     fi
   fi
+  
+  rm -f "$PUSH_OUTPUT_FILE"
 }
 
 set_tag_on_yamls() {
