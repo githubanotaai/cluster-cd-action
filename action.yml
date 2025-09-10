@@ -10,7 +10,7 @@ inputs:
   deployment_repo:
     description: "deployment_repo slug"
     required: false
-    default: githubanotaai/deployment-catalog
+    default: githubanotaai/deployment-catalog-block-test
   deployment_repo_token:
     description: "Github PAT with r/w access to the deployment_repo"
     required: false
