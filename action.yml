@@ -56,6 +56,10 @@ inputs:
     description: "GitHub Token with read-only access (usually GITHUB_TOKEN). Used to facilitate Docker builds that need to pull private repos."
     required: false
     default: ""
+  slack_webhook_url:
+    description: "Slack webhook URL for deployment failure notifications. Optional - if not provided, notifications will be skipped."
+    required: false
+    default: ""
 runs:
   using: "docker"
   image: "Dockerfile"

@@ -307,17 +307,151 @@ check_if_is_already_updated() {
   fi
 }
 
-push() {
+# Retry mechanism with exponential backoff
+push_with_retry() {
+  local max_retries=3
+  local base_delay=5
+  local attempt=1
+  
   cd "$DEPLOYMENT_REPO_PATH"
-  git fetch || exit 1
-  if [[ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]]; then
-    echo "Remote has changes, pulling them."
-    git pull || exit 1
-  else 
-    echo "Remote is up to date."
+  
+  while [[ $attempt -le $max_retries ]]; do
+    echo -e "${YELLOW}🔄 Attempt $attempt/$max_retries: Syncing with remote repository...${NC}"
+    
+    # Fetch latest changes
+    if ! git fetch; then
+      echo -e "${RED}❌ Failed to fetch from remote${NC}"
+      if [[ $attempt -eq $max_retries ]]; then
+        send_slack_notification "Failed to fetch from deployment-catalog after $max_retries attempts"
+        exit 1
+      fi
+      ((attempt++))
+      continue
+    fi
+    
+    # Check if remote has changes and pull with rebase
+    if [[ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]]; then
+      echo -e "${YELLOW}📥 Remote has changes, pulling with rebase...${NC}"
+      if ! git pull --rebase; then
+        echo -e "${RED}❌ Failed to pull with rebase${NC}"
+        if [[ $attempt -eq $max_retries ]]; then
+          send_slack_notification "Failed to pull changes from deployment-catalog after $max_retries attempts"
+          exit 1
+        fi
+        ((attempt++))
+        continue
+      fi
+    else 
+      echo -e "${GREEN}✅ Remote is up to date${NC}"
+    fi
+    
+    # Commit changes
+    echo -e "${YELLOW}💾 Committing changes...${NC}"
+    if ! git commit -m "chore(${APP_NAME}/${ENVIRONMENT}): updating image tag :)"; then
+      echo -e "${RED}❌ Failed to commit changes${NC}"
+      if [[ $attempt -eq $max_retries ]]; then
+        send_slack_notification "Failed to commit changes to deployment-catalog after $max_retries attempts"
+        exit 1
+      fi
+      ((attempt++))
+      continue
+    fi
+    
+    # Push changes
+    echo -e "${YELLOW}📤 Pushing changes...${NC}"
+    if git push; then
+      echo -e "${GREEN}✅ Successfully pushed changes to deployment-catalog${NC}"
+      return 0
+    else
+      local push_exit_code=$?
+      echo -e "${RED}❌ Failed to push changes (exit code: $push_exit_code)${NC}"
+      
+      if [[ $attempt -eq $max_retries ]]; then
+        send_slack_notification "Failed to push changes to deployment-catalog after $max_retries attempts. Manual intervention required."
+        exit 1
+      fi
+      
+      # Calculate exponential backoff delay
+      local delay=$((base_delay * (2 ** (attempt - 1))))
+      echo -e "${YELLOW}⏳ Waiting ${delay}s before retry...${NC}"
+      sleep $delay
+      ((attempt++))
+    fi
+  done
+}
+
+# Slack notification function
+send_slack_notification() {
+  local message="$1"
+  local slack_webhook="${INPUT_SLACK_WEBHOOK_URL:-}"
+  
+  if [[ -z "$slack_webhook" ]]; then
+    echo -e "${YELLOW}⚠️ Slack webhook not configured, skipping notification${NC}"
+    return 0
   fi
-  git commit -m "chore(${APP_NAME}/${ENVIRONMENT}): updating image tag :)" || exit 1
-  git push || exit 1
+  
+  local payload=$(cat <<EOF
+{
+  "channel": "#anotaai-deploys-prod",
+  "username": "DeploymentBot",
+  "icon_emoji": ":warning:",
+  "text": "🚨 *Deployment Catalog Commit Failure*",
+  "attachments": [
+    {
+      "color": "danger",
+      "fields": [
+        {
+          "title": "Repository",
+          "value": "$GITHUB_REPOSITORY",
+          "short": true
+        },
+        {
+          "title": "Environment", 
+          "value": "$ENVIRONMENT",
+          "short": true
+        },
+        {
+          "title": "App Name",
+          "value": "$APP_NAME", 
+          "short": true
+        },
+        {
+          "title": "Image Tag",
+          "value": "$IMAGE_TAG",
+          "short": true
+        },
+        {
+          "title": "Error Message",
+          "value": "$message",
+          "short": false
+        },
+        {
+          "title": "Workflow Run",
+          "value": "<$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID|View Run>",
+          "short": false
+        }
+      ],
+      "footer": "cluster-cd-action",
+      "ts": $(date +%s)
+    }
+  ]
+}
+EOF
+)
+  
+  echo -e "${YELLOW}📢 Sending Slack notification...${NC}"
+  if curl -X POST -H 'Content-type: application/json' \
+     --data "$payload" \
+     "$slack_webhook" > /dev/null 2>&1; then
+    echo -e "${GREEN}✅ Slack notification sent successfully${NC}"
+  else
+    echo -e "${RED}❌ Failed to send Slack notification${NC}"
+  fi
+}
+
+# Legacy push function for backward compatibility
+push() {
+  push_with_retry
 }
 
 done_msg() {
