@@ -1,0 +1,21 @@
+---
+name: SAST and Linting
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  anotaai-sast-linting:
+    uses: githubanotaai/.github/.github/workflows/anotaai-code-analysis.yml@master
+    with:
+      lint_command: ""
+    secrets: inherit
